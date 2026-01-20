@@ -1,5 +1,6 @@
-import { StarknetClient as CoreStarknetClient, StarknetClientConfig as CoreStarknetClientConfig } from '@veridex/sdk';
+import { StarknetClient as CoreStarknetClient, StarknetClientConfig as CoreStarknetClientConfig } from '@veridex/sdk/chains/starknet';
 import { BaseAgentChainClient } from './ChainClient';
+import { RpcProvider } from 'starknet';
 
 /**
  * Agent-specific Starknet chain client.
@@ -13,17 +14,8 @@ export class StarknetChainClient extends BaseAgentChainClient {
         this.starknetCore = core;
     }
 
-    override async getNativeTokenPriceUSD(): Promise<number> {
-        // STRK price
-        return 0.5;
-    }
 
-    override async getTokenPriceUSD(tokenAddress: string): Promise<number> {
-        // USDC on Starknet
-        return 1.0;
-    }
-
-    getClient() {
+    getClient(): RpcProvider {
         return this.starknetCore.getProvider();
     }
 }

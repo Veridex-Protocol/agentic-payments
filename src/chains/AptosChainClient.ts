@@ -1,5 +1,6 @@
-import { AptosClient as CoreAptosClient, AptosClientConfig as CoreAptosClientConfig } from '@veridex/sdk';
+import { AptosClient as CoreAptosClient, AptosClientConfig as CoreAptosClientConfig } from '@veridex/sdk/chains/aptos';
 import { BaseAgentChainClient } from './ChainClient';
+import { Aptos } from '@aptos-labs/ts-sdk';
 
 /**
  * Agent-specific Aptos chain client.
@@ -13,17 +14,8 @@ export class AptosChainClient extends BaseAgentChainClient {
         this.aptosCore = core;
     }
 
-    override async getNativeTokenPriceUSD(): Promise<number> {
-        // APT price
-        return 10.0;
-    }
 
-    override async getTokenPriceUSD(tokenAddress: string): Promise<number> {
-        // USDC on Aptos
-        return 1.0;
-    }
-
-    getClient() {
+    getClient(): Aptos {
         return this.aptosCore.getClient();
     }
 }

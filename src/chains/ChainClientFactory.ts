@@ -2,12 +2,12 @@ import {
     getChainPreset,
     ChainName,
     NetworkType,
-    EVMClientConfig,
-    SolanaClientConfig,
-    AptosClientConfig,
-    SuiClientConfig,
-    StarknetClientConfig
 } from '@veridex/sdk';
+import { EVMClientConfig } from '@veridex/sdk/chains/evm';
+import { SolanaClientConfig } from '@veridex/sdk/chains/solana';
+import { AptosClientConfig } from '@veridex/sdk/chains/aptos';
+import { SuiClientConfig } from '@veridex/sdk/chains/sui';
+import { StarknetClientConfig } from '@veridex/sdk/chains/starknet';
 import { AgentChainClient } from './ChainClient';
 import { EVMChainClient } from './EVMChainClient';
 import { SolanaChainClient } from './SolanaChainClient';

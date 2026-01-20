@@ -47,3 +47,12 @@ export * from './ucp/PaymentTokenizer';
 
 export * from './react/hooks';
 
+// Performance optimizations
+export * from './performance';
+
+// Oracle
+export * from './oracle/PythOracle';
+export * from './oracle/PythFeeds';
+
+// DEX
+export * from './routing/DEXAggregator';

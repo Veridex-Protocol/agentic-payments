@@ -1,4 +1,5 @@
 import { ChainClient as CoreChainClient, ChainConfig } from '@veridex/sdk';
+import { PythOracle } from '../oracle/PythOracle';
 
 /**
  * Unified interface for agent-specific chain client operations.
@@ -40,14 +41,20 @@ export abstract class BaseAgentChainClient implements AgentChainClient {
     getFactoryAddress(): string | undefined { return this.coreClient.getFactoryAddress(); }
     getImplementationAddress(): string | undefined { return this.coreClient.getImplementationAddress(); }
 
-    // New agent-specific methods (placeholders for now)
+    // New agent-specific methods
     async getNativeTokenPriceUSD(): Promise<number> {
-        // In real implementation, query Pyth, Chainlink, or a price API
-        return 1.0;
+        const config = this.getConfig();
+        const price = await PythOracle.getInstance().getNativeTokenPrice(config.name);
+        if (price > 0) return price;
+
+        console.warn(`[BaseAgentChainClient] Failed to get native price for ${config.name}, returning fallback.`);
+        return 1.0; // Fallback
     }
 
     async getTokenPriceUSD(tokenAddress: string): Promise<number> {
-        // In real implementation, query price API
+        // TODO: Implement token address to Feed ID mapping
+        // For now, check if it's USDC or similar known tokens?
+        // Or simply fail/return default.
         return 1.0;
     }
 }
