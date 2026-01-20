@@ -1,0 +1,32 @@
+{
+    "name": "@veridex/agentic-payments",
+    "version": "0.1.0",
+    "description": "Veridex SDK for Agentic Payments (UCP + x402)",
+    "main": "dist/index.js",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "test": "vitest",
+        "lint": "eslint src/"
+    },
+    "dependencies": {
+        "@veridex/sdk": "latest",
+        "@ucp-js/sdk": "latest",
+        "axios": "^1.6.0",
+        "zod": "^3.22.0",
+        "ethers": "^6.10.0",
+        "@noble/secp256k1": "^2.0.0",
+        "@solana/web3.js": "^1.87.0"
+    },
+    "devDependencies": {
+        "tsup": "^8.0.0",
+        "typescript": "^5.0.0",
+        "vitest": "^1.0.0",
+        "fast-check": "^3.15.0"
+    },
+    "publishConfig": {
+        "access": "public"
+    }
+}
