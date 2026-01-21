@@ -40,6 +40,14 @@ const TOKEN_DECIMALS: Record<string, number> = {
   '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48': 6, // Ethereum USDC
   '0xaf88d065e77c8cC2239327C5EDb3A432268e5831': 6, // Arbitrum USDC
   '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85': 6, // Optimism USDC
+  '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0': 6, // Cronos Testnet devUSDC.e
+  '0xf951eC28187D9E5Ca673Da8FE6757E6f0Be5F77C': 6, // Cronos Mainnet USDC.e
+};
+
+// Token metadata for EIP-712 domains
+const TOKEN_METADATA: Record<string, { name: string; version: string }> = {
+  '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0': { name: 'Bridged USDC (Stargate)', version: '1' }, // Cronos Testnet
+  '0xf951eC28187D9E5Ca673Da8FE6757E6f0Be5F77C': { name: 'Bridged USDC (Stargate)', version: '1' }, // Cronos Mainnet
 };
 
 // Default validity window (5 minutes)
@@ -99,12 +107,13 @@ export class PaymentSigner {
     };
 
     // EIP-712 domain - for x402 exact scheme on EVM
+    const tokenMetadata = TOKEN_METADATA[request.token.toLowerCase()] || { name: 'x402', version: '1' };
+
     const domain: ethers.TypedDataDomain = {
-      name: 'x402',
-      version: '1',
+      name: tokenMetadata.name,
+      version: tokenMetadata.version,
       chainId: this.wormholeToEvmChainId(request.chain),
-      // verifyingContract would be the token contract
-      // Not included as x402 uses a custom domain for payment protocol itself
+      verifyingContract: request.token,
     };
 
     // EIP-712 types for TransferWithAuthorization
@@ -222,8 +231,10 @@ export class PaymentSigner {
       5: 137,      // Polygon
       6: 43114,    // Avalanche
       4: 56,       // BSC
+      25: 25,      // Cronos Mainnet
       10002: 11155111, // Ethereum Sepolia
       10004: 84532,    // Base Sepolia
+      10025: 338,      // Cronos Testnet
     };
 
     return mapping[wormholeChainId] || wormholeChainId;

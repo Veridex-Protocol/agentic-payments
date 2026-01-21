@@ -15,7 +15,7 @@
  *
  * @example
  * ```typescript
- * import { createAgentWallet } from '@veridex/agent-sdk';
+ * import { createAgentWallet } from '@veridex/agentic-payments';
  *
  * const agent = await createAgentWallet({
  *   session: { dailyLimitUSD: 100 }
@@ -64,7 +64,7 @@ export class AgentWallet {
     this.complianceExporter = new ComplianceExporter();
     this.balanceCache = new BalanceCache();
     // x402Client needs coreSDK, so we'll lazy-init it
-    this.x402Client = new X402Client(this.sessionManager, null as any);
+    this.x402Client = new X402Client(this.sessionManager, null as any, config.x402);
 
     if (config.mcp?.enabled) {
       this.mcpServer = new MCPServer(this);
@@ -231,17 +231,19 @@ export class AgentWallet {
     }
   }
 
-  getSessionStatus(): SessionStatus {
-    if (!this.currentSession) return { isValid: false, keyHash: '', expiry: 0, remainingDailyLimitUSD: 0, totalSpentUSD: 0 };
-
+  public getSessionStatus(): SessionStatus {
+    if (!this.currentSession) throw new Error('No active session');
     return {
       isValid: this.sessionManager.isSessionValid(this.currentSession),
       keyHash: this.currentSession.keyHash,
       expiry: this.currentSession.config.expiryTimestamp,
       remainingDailyLimitUSD: this.currentSession.config.dailyLimitUSD - this.currentSession.metadata.dailySpentUSD,
       totalSpentUSD: this.currentSession.metadata.totalSpentUSD,
-      masterKeyHash: this.currentSession.masterKeyHash,
-      address: ethers.computeAddress(this.currentSession.publicKey)
+      address: this.currentSession.walletAddress,
+      limits: {
+        dailyLimitUSD: this.currentSession.config.dailyLimitUSD,
+        perTransactionLimitUSD: this.currentSession.config.perTransactionLimitUSD
+      }
     };
   }
 

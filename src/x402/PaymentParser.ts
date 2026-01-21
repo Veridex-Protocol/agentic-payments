@@ -40,11 +40,14 @@ const NETWORK_TO_CHAIN_ID: Record<string, number> = {
   'avalanche': 6,
   'bsc-mainnet': 4,
   'bsc': 4,
+  'cronos-mainnet': 25,
+  'cronos': 25,
   // Testnets
   'base-sepolia': 10004,
   'ethereum-sepolia': 10002,
   'arbitrum-sepolia': 10003,
   'optimism-sepolia': 10005,
+  'cronos-testnet': 10025, // Internal Veridex ID for Cronos Testnet
 };
 
 export class PaymentParser {
@@ -164,6 +167,8 @@ export class PaymentParser {
         137: 5,      // Polygon
         43114: 6,    // Avalanche
         56: 4,       // BSC
+        25: 25,      // Cronos Mainnet
+        400: 10025,  // Cronos Testnet
         84532: 10004, // Base Sepolia
         11155111: 10002, // Ethereum Sepolia
       };

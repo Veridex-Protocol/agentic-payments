@@ -40,6 +40,14 @@ export interface AgentWalletConfig {
     port?: number;
     allowedOrigins?: string[];
   };
+
+  // Optional x402 configuration
+  x402?: {
+    defaultFacilitator?: string;
+    paymentTimeoutMs?: number;
+    maxRetries?: number;
+    verifyBeforePay?: boolean;
+  };
 }
 
 export interface PaymentParams {
@@ -71,6 +79,10 @@ export interface SessionStatus {
   totalSpentUSD: number;
   masterKeyHash?: string;
   address?: string; // EVM address derived from session key
+  limits?: {
+    dailyLimitUSD: number;
+    perTransactionLimitUSD: number;
+  };
 }
 
 export interface HistoryOptions {

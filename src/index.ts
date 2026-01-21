@@ -36,6 +36,7 @@ export * from './session/SessionStorage';
 export * from './x402/X402Client';
 export * from './x402/PaymentParser';
 export * from './x402/PaymentSigner';
+export * from './x402/adapters/CronosFacilitatorAdapter';
 
 export * from './ucp/CredentialProvider';
 export * from './ucp/CapabilityNegotiator';

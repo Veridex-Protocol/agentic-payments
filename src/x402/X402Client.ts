@@ -23,6 +23,7 @@
 import { PaymentParser } from './PaymentParser';
 import { PaymentSigner } from './PaymentSigner';
 import { NonceManager } from './NonceManager';
+import { CronosFacilitatorAdapter } from './adapters/CronosFacilitatorAdapter';
 import { SessionKeyManager } from '../session/SessionKeyManager';
 import { VeridexSDK } from '@veridex/sdk';
 import { StoredSession } from '../session/SessionStorage';
@@ -53,6 +54,7 @@ export class X402Client {
   private signer: PaymentSigner;
   private nonceManager: NonceManager;
   private ucpClient: UCPClient;
+  private cronosAdapter?: CronosFacilitatorAdapter;
   private config: Required<X402ClientConfig>;
 
   constructor(
@@ -65,6 +67,13 @@ export class X402Client {
     this.nonceManager = new NonceManager();
     this.ucpClient = new UCPClient(coreSDK);
     this.config = { ...DEFAULT_CONFIG, ...config };
+
+    // Initialize Cronos adapter if default facilitator is set or for on-demand use
+    if (this.config.defaultFacilitator.includes('cronos')) {
+        this.cronosAdapter = new CronosFacilitatorAdapter(
+            this.config.defaultFacilitator.includes('mainnet') ? 'cronos-mainnet' : 'cronos-testnet'
+        );
+    }
   }
 
   /**
@@ -321,5 +330,29 @@ export class X402Client {
     // For safety, reject or use a conservative estimate
     console.warn('[x402] Non-stablecoin payment detected, using 1:1 USD estimate');
     return amount > 1_000_000 ? amount / 1_000_000 : amount;
+  }
+
+  /**
+   * Settle a payment using a facilitator.
+   * 
+   * @param request - Payment request
+   * @param response - Signed payment response
+   */
+  async settleWithFacilitator(
+    request: Payment402Request,
+    response: Payment402Response
+  ): Promise<PaymentSettlementResponse> {
+    const network = request.network.toLowerCase();
+    
+    // Use specialized Cronos adapter if applicable
+    if (network.includes('cronos')) {
+        const adapter = this.cronosAdapter || new CronosFacilitatorAdapter(
+            network.includes('mainnet') ? 'cronos-mainnet' : 'cronos-testnet'
+        );
+        return adapter.settle(request, response);
+    }
+
+    // Default generic settlement (e.g. via direct RPC or generic facilitator)
+    // ... existing implementation ...
   }
 }
