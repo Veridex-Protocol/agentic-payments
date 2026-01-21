@@ -36,7 +36,8 @@ export * from './session/SessionStorage';
 export * from './x402/X402Client';
 export * from './x402/PaymentParser';
 export * from './x402/PaymentSigner';
-export * from './x402/adapters/CronosFacilitatorAdapter';
+// CronosFacilitatorAdapter is NOT exported from main entry point due to node:crypto dependency
+// Import it directly for server-side usage: import { CronosFacilitatorAdapter } from '@veridex/agentic-payments/x402/adapters/CronosFacilitatorAdapter';
 
 export * from './ucp/CredentialProvider';
 export * from './ucp/CapabilityNegotiator';
