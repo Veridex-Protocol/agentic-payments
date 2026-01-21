@@ -1,3 +1,14 @@
+/**
+ * @packageDocumentation
+ * @module AgentTypes
+ * @description
+ * Core type definitions for the Agent SDK.
+ * 
+ * Includes interfaces for:
+ * - {@link AgentWalletConfig}: Configuration for clearing the agent.
+ * - {@link PaymentParams}: Structure of a payment request.
+ * - {@link SessionStatus}: State of the active session key.
+ */
 import { PasskeyCredential, TokenBalance, PortfolioBalance } from '@veridex/sdk';
 
 export interface AgentWalletConfig {
@@ -58,6 +69,8 @@ export interface SessionStatus {
   expiry: number;
   remainingDailyLimitUSD: number;
   totalSpentUSD: number;
+  masterKeyHash?: string;
+  address?: string; // EVM address derived from session key
 }
 
 export interface HistoryOptions {

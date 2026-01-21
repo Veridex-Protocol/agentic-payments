@@ -1,14 +1,16 @@
 /**
- * Cross-Chain Router
+ * @packageDocumentation
+ * @module CrossChainRouter
+ * @description
+ * Intelligent routing for multi-chain payments.
  * 
- * Finds optimal payment routes across chains using the Veridex Protocol.
- * Leverages @veridex/sdk's multi-chain capabilities and relayer service.
+ * The Router is responsible for finding the most efficient path for a payment to reach its destination.
+ * It considers:
+ * - **Direct Transfers**: If the agent already holds funds on the target chain.
+ * - **Wormhole Bridging**: If funds need to be moved across chains.
+ * - **DEX Swaps**: If token conversion is needed (via {@link DEXAggregator}).
  * 
- * The router:
- * 1. Checks balances across all supported chains
- * 2. Calculates fees for different routes
- * 3. Selects the optimal route based on cost/time
- * 4. Supports both direct transfers and bridges
+ * It optimizes for either **Speed** (fastest finality) or **Cost** (lowest fees).
  */
 
 import {

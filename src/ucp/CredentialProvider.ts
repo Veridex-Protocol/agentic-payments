@@ -1,9 +1,24 @@
+/**
+ * @packageDocumentation
+ * @module UCPCredentialProvider
+ * @description
+ * Implements the Universal Credential Protocol (UCP) for payment tokenization.
+ *
+ * This provider allows the Agent to generate secure, tokenized payment credentials that
+ * can be shared with merchants or payment processors. It abstracts the raw blockchain
+ * signing capabilities into a standardized "checkout" flow, compatible with the UCP standard.
+ *
+ * Key Capabilities:
+ * - **Discovery**: Publishes agent capabilities (e.g., "I can pay on Base").
+ * - **Tokenization**: Creates opaque payment tokens linked to Session Keys.
+ * - **Checkout**: Handles checkout requests and authorizes limits.
+ */
 import { UCPProfile, UCPCheckoutRequest, UCPCheckoutResponse } from '../types/ucp';
 import { StoredSession } from '../session/SessionStorage';
 import { SessionKeyManager } from '../session/SessionKeyManager';
 
 export class UCPCredentialProvider {
-  constructor(private sessionManager: SessionKeyManager) {}
+  constructor(private sessionManager: SessionKeyManager) { }
 
   getProfile(): UCPProfile {
     return {

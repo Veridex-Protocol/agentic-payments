@@ -1,3 +1,13 @@
+/**
+ * @packageDocumentation
+ * @module BalanceCache
+ * @description
+ * Short-lived cache for wallet balances to reduce RPC load.
+ * 
+ * Since agents might query balances frequently (e.g., before every transaction attempt),
+ * this cache provides a TTL-based mechanism (default 10s) to serve recent balance data
+ * without hitting the blockchain node repeatedly.
+ */
 import { TokenBalance } from '@veridex/sdk';
 
 interface CachedBalance {

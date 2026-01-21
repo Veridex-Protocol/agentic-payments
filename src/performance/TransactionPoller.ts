@@ -1,8 +1,14 @@
 /**
- * Transaction Confirmation Poller
+ * @packageDocumentation
+ * @module TransactionPoller
+ * @description
+ * Reliable transaction confirmation tracking.
  * 
- * Polls for transaction confirmations every 2 seconds,
- * emitting events on confirmation or failure.
+ * Unlike standard `await tx.wait()`, this poller:
+ * - Does NOT block the main thread.
+ * - Polls for status updates in the background (every 2s).
+ * - Emits events (`pending`, `confirmed`, `failed`) for UI updates.
+ * - Handles long-running cross-chain epochs without timing out the application.
  */
 
 export type TransactionStatus = 'pending' | 'confirmed' | 'failed' | 'timeout';

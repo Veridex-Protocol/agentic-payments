@@ -1,3 +1,12 @@
+/**
+ * @packageDocumentation
+ * @module x402NonceManager
+ * @description
+ * Generates cryptographic nonces for x402 payment headers.
+ * 
+ * Ensures that every payment request is unique to prevent replay attacks
+ * at the protocol level.
+ */
 import { ethers } from 'ethers';
 
 export class NonceManager {

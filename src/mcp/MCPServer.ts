@@ -1,3 +1,17 @@
+/**
+ * @packageDocumentation
+ * @module MCPServer
+ * @description
+ * Implements the Model Context Protocol (MCP) Server for AI Agent Tools.
+ * 
+ * This server exposes the specific capabilities of the Agent SDK (paying, balance checking, etc.)
+ * as standard MCP Tools that can be discovered and executed by LLMs (e.g., Claude, Gemini).
+ * 
+ * Exposed Tools:
+ * - `veridex_create_session_key`: Initialize a new constrained wallet.
+ * - `veridex_pay`: Execute a cross-chain transaction.
+ * - `veridex_check_balance`: Query unified portfolio balance.
+ */
 import { AgentWallet } from '../AgentWallet';
 import { MCPTool, MCPToolResult } from '../types/mcp';
 import * as schemas from './schemas';

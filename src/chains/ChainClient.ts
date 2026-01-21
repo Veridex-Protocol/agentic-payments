@@ -1,3 +1,16 @@
+/**
+ * @packageDocumentation
+ * @module ChainClient
+ * @description
+ * Defines the unified interface for Agent-specific blockchain interactions.
+ * 
+ * This module provides the `AgentChainClient` interface and base classes that abstract
+ * the differences between various blockchains (EVM, Solana, Starknet, etc.).
+ * It extends the core SDK's chain clients with agent-specific capabilities, such as:
+ * - Real-time token pricing (USD) via Pyth Network.
+ * - Gas estimation for agent operations.
+ * - Unified transaction payload building.
+ */
 import { ChainClient as CoreChainClient, ChainConfig } from '@veridex/sdk';
 import { PythOracle } from '../oracle/PythOracle';
 

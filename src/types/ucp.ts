@@ -1,3 +1,13 @@
+/**
+ * @packageDocumentation
+ * @module UCPTypes
+ * @description
+ * Type definitions for the Universal Commerce Protocol (UCP).
+ * 
+ * Includes interfaces for:
+ * - {@link UCPProfile}: Identity and capabilities of a UCP actor.
+ * - {@link UCPCheckoutRequest}: Structure of a checkout payload.
+ */
 export interface UCPProfile {
   id: string;
   name: string;

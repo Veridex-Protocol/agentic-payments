@@ -1,3 +1,13 @@
+/**
+ * @packageDocumentation
+ * @module ComplianceExporter
+ * @description
+ * Utilities for exporting audit logs in regulatory-friendly formats.
+ * 
+ * Supports exporting transaction history as:
+ * - **JSON**: For machine ingestion.
+ * - **CSV**: For spreadsheet analysis and reporting.
+ */
 import { PaymentRecord } from './AuditLogger';
 
 export class ComplianceExporter {

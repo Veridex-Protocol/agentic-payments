@@ -1,10 +1,14 @@
 /**
- * x402 Payment Signer
+ * @packageDocumentation
+ * @module PaymentSigner
+ * @description
+ * Cryptographic engine for x402 payment authorization.
  * 
- * Generates EIP-712 / ERC-3009 signatures for x402 payments.
- * 
- * ERC-3009 (transferWithAuthorization) allows gasless token transfers
- * where a signature authorizes a third party to transfer tokens.
+ * This module is responsible for producing the correct cryptographic proof for a payment
+ * request. It supports:
+ * - **EIP-712**: Typed structured data signing for EVM chains (ERC-3009).
+ * - **Key Management**: securely loading encrypted session keys for signing.
+ * - **Nonce Generation**: ensuring replay protection for payment payloads.
  * 
  * Reference: https://eips.ethereum.org/EIPS/eip-3009
  */

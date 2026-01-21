@@ -1,3 +1,15 @@
+/**
+ * @packageDocumentation
+ * @module AlertManager
+ * @description
+ * Real-time monitoring and alerting system for agent spending.
+ * 
+ * Capabilites:
+ * - **Threshold Alerts**: Triggers warnings when spending hits 50%, 80%, 90% of daily limits.
+ * - **High Value Approval**: Pauses large transactions (> $1000) for human approval.
+ * - **Anomaly Detection**: Uses heuristics to detect unusual spending patterns (frequency/amount spikes).
+ * - **Webhooks**: Dispatches critical alerts to external systems (Slack, PagerDuty).
+ */
 import { SpendingAlert } from '../types/agent';
 import { PaymentRecord } from './AuditLogger';
 

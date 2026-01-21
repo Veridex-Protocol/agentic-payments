@@ -1,10 +1,17 @@
 /**
- * x402 Payment Parser
+ * @packageDocumentation
+ * @module PaymentParser
+ * @description
+ * Parses and validates x402 Payment Headers.
  * 
- * Parses HTTP 402 Payment Required responses according to the
- * Coinbase x402 protocol specification.
+ * This module is responsible for decoding the `PAYMENT-REQUIRED` (HTTP 402) header.
+ * It handles the mapping of various network identifiers (e.g., "base-mainnet", "chain-1")
+ * to the internal Wormhole Chain ID format used by the SDK.
  * 
- * Reference: https://github.com/coinbase/x402
+ * Supports:
+ * - Parsing Base64 encoded JSON payment requirements.
+ * - Selection of optimal payment method (if server offers options).
+ * - Amount normalization (human-readable to BigInt).
  */
 
 import {

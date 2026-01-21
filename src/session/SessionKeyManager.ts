@@ -1,14 +1,20 @@
 /**
- * Session Key Manager
+ * @packageDocumentation
+ * @module SessionKeyManager
+ * @description
+ * Manages the lifecycle of secure, ephemeral session keys for autonomous agent payments.
  * 
- * Manages the lifecycle of session keys for autonomous agent payments.
- * Session keys are temporary, bounded signing keys that:
- * - Have spending limits (daily and per-transaction)
- * - Have expiration times
- * - Are derived from a master passkey
- * - Can be revoked at any time
+ * Session keys are the core security primitive of the Agent SDK. They are temporary, bounded
+ * keys derived from a master passkey (or wallet) that allow the agent to operate autonomously
+ * without exposing the master credentials.
  * 
- * Uses @veridex/sdk cryptographic utilities for secure key generation.
+ * Features:
+ * - **Key Derivation**: Securely derives keys using `secp256k1` (EVM compatible).
+ * - **Encryption**: Private keys are encrypted at rest.
+ * - **Policy Enforcement**: Enforces daily spending limits and expiration times.
+ * - **Revocation**: Instant revocation capability for all sessions.
+ * 
+ * @see {@link SessionStorage} for persistence details.
  */
 
 import { ethers } from 'ethers';
@@ -92,6 +98,13 @@ export class SessionKeyManager {
     await this.storage.saveSession(session);
 
     return session;
+  }
+
+  /**
+   * Import an existing session (e.g. from frontend provisioning).
+   */
+  async importSession(session: StoredSession): Promise<void> {
+    await this.storage.saveSession(session);
   }
 
   /**
@@ -184,16 +197,25 @@ export class SessionKeyManager {
 
     // Handle both encrypted (base64) and unencrypted (hex) formats
     // This provides backwards compatibility during migration
-    if (session.encryptedPrivateKey.startsWith('0x')) {
+    // Check for raw private key (32 bytes = 66 chars including 0x prefix)
+    if (session.encryptedPrivateKey.startsWith('0x') && session.encryptedPrivateKey.length === 66) {
       // Unencrypted hex format (legacy/development)
       console.warn('[SessionKeyManager] Session using unencrypted private key - migrate to encrypted storage');
       return ethers.getBytes(session.encryptedPrivateKey);
     }
 
-    // Decrypt the key
-    const encryptedBytes = Uint8Array.from(
-      Buffer.from(session.encryptedPrivateKey, 'base64')
-    );
+    // If it starts with 0x but is longer, it's a HEX-encoded ENCRYPTED blob (from frontend)
+    let encryptedBytes: Uint8Array;
+
+    if (session.encryptedPrivateKey.startsWith('0x')) {
+      encryptedBytes = ethers.getBytes(session.encryptedPrivateKey);
+    } else {
+      // Assume Base64
+      encryptedBytes = Uint8Array.from(
+        Buffer.from(session.encryptedPrivateKey, 'base64')
+      );
+    }
+
     return await decrypt(encryptedBytes, this.encryptionKey);
   }
 
@@ -207,8 +229,8 @@ export class SessionKeyManager {
     session: StoredSession,
     masterCredentialId: string
   ): Promise<ethers.Wallet> {
-    // For backwards compatibility, check if key is already in hex format
-    if (session.encryptedPrivateKey.startsWith('0x')) {
+    // Only treat as raw private key if it's 0x AND exactly 32 bytes (66 chars)
+    if (session.encryptedPrivateKey.startsWith('0x') && session.encryptedPrivateKey.length === 66) {
       return new ethers.Wallet(session.encryptedPrivateKey);
     }
 

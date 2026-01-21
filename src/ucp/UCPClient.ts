@@ -1,3 +1,16 @@
+/**
+ * @packageDocumentation
+ * @module UCPClient
+ * @description
+ * Client implementation for Universal Commerce Protocol (UCP) interactions.
+ * 
+ * Handles the flow of:
+ * 1. Discovering UCP capabilities from a 402 or standard checkout URL.
+ * 2. Creating a checkout session.
+ * 3. Selecting a compatible payment handler (e.g. Veridex Passkey Payment).
+ * 4. Generating the required cryptographic payment credentials.
+ * 5. Completing the checkout.
+ */
 import { ethers } from 'ethers';
 import { StoredSession } from '../session/SessionStorage';
 import { VeridexSDK } from '@veridex/sdk';

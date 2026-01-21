@@ -1,3 +1,18 @@
+/**
+ * @packageDocumentation
+ * @module ChainClientFactory
+ * @description
+ * Factory pattern for creating chain-specific Agent Clients.
+ * 
+ * This factory abstracts the instantiation complexity of various chain clients (EVM, Solana, Starknet, etc.).
+ * It uses the Veridex `ChainPreset` configuration to automatically inject the correct contract addresses,
+ * RPC URLs, and bridge configurations for the requested network environment (Mainnet/Testnet).
+ * 
+ * Usage:
+ * ```typescript
+ * const client = ChainClientFactory.createClient('base', 'mainnet');
+ * ```
+ */
 import {
     getChainPreset,
     ChainName,

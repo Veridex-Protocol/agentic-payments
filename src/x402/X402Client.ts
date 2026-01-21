@@ -1,16 +1,21 @@
 /**
- * x402 Client
+ * @packageDocumentation
+ * @module X402Client
+ * @description
+ * Client implementation for the x402 (Payment by Request) Protocol.
  * 
- * Handles HTTP 402 Payment Required responses automatically.
- * Implements the Coinbase x402 protocol for machine-to-machine payments.
+ * This module handles the automatic negotiation of HTTP 402 "Payment Required" responses.
+ * It intercepts 402 errors, parses the payment requirements, signs the necessary
+ * authorization (EIP-712/ERC-3009), and autonomously retries the request.
  * 
  * Flow:
- * 1. Client makes HTTP request to resource server
- * 2. Server responds with 402 + PAYMENT-REQUIRED header
- * 3. Client parses payment requirements
- * 4. Client signs payment authorization (ERC-3009)
- * 5. Client retries request with PAYMENT-SIGNATURE header
- * 6. Server verifies/settles payment and returns resource
+ * 1. Client makes HTTP request to resource server.
+ * 2. Server responds with 402 + `PAYMENT-REQUIRED` header.
+ * 3. Client parses payment requirements (Chain ID, Token, Amount).
+ * 4. Client verifies session spending limits.
+ * 5. Client signs payment authorization using Session Key.
+ * 6. Client retries request with `PAYMENT-SIGNATURE` header.
+ * 7. Server verifies/settles payment and returns resource.
  * 
  * Reference: https://github.com/coinbase/x402
  */

@@ -1,5 +1,8 @@
 /**
- * x402 Protocol Types
+ * @packageDocumentation
+ * @module x402Types
+ * @description
+ * Type definitions for the x402 (Payment over HTTP) Protocol.
  * 
  * Based on Coinbase x402 specification: https://github.com/coinbase/x402
  * 

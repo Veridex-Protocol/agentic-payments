@@ -1,3 +1,11 @@
+/**
+ * @packageDocumentation
+ * @module SuiChainClient
+ * @description
+ * Agent adapter for the Sui blockchain (Move VM).
+ * 
+ * Extends the core SDK to support agent operations on Sui.
+ */
 import { SuiClient as CoreSuiClient, SuiClientConfig as CoreSuiClientConfig } from '@veridex/sdk/chains/sui';
 import { BaseAgentChainClient } from './ChainClient';
 

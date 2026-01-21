@@ -1,15 +1,17 @@
 /**
- * Transaction Queue - Production-Grade Batch Transaction Support
+ * @packageDocumentation
+ * @module TransactionQueue
+ * @description
+ * Enterprise-grade batch processing for Agent Transactions.
  * 
- * Implements transaction queuing with:
- * - Priority-based ordering (high > normal > low)
- * - Configurable batch sizes and delays
- * - Retry logic with exponential backoff
- * - Transaction expiration (TTL)
- * - Event-driven completion notifications
- * - Concurrent execution limits
- * - Dead letter queue for failed transactions
- * - Statistics and monitoring
+ * When an agent needs to perform multiple actions (e.g., pay 5 different vendors),
+ * simply looping through them can cause nonce condition errors and rate limiting.
+ * 
+ * This Queue provides:
+ * - **Sequential Execution**: Ensures nonces are used in order.
+ * - **Concurrency Control**: Limits active batches (default 3 concurrent).
+ * - **Retry Logic**: Exponential backoff for failed submissions.
+ * - **Dead Letter Queue**: Isolated storage for persistently failing transactions.
  */
 
 import { EventEmitter } from 'events';

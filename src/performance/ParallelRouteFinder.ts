@@ -1,12 +1,15 @@
 /**
- * Parallel Route Finder - Optimized Cross-Chain Route Discovery
+ * @packageDocumentation
+ * @module ParallelRouteFinder
+ * @description
+ * High-performance engine for discovering cross-chain payment paths.
  * 
- * Implements parallel route finding with:
- * - Concurrent balance queries across all chains
- * - Parallel fee estimation
- * - Route scoring and ranking
- * - Timeout handling
- * - Caching for repeated queries
+ * Instead of querying chains sequentially, this module:
+ * 1. Multicasts balance queries to all configured chains simultaneously.
+ * 2. Races requests against a configurable timeout (default 5s).
+ * 3. Aggregates results and scores them based on the User's preference (Speed vs Cost).
+ * 
+ * Result: Finds optimal routes in milliseconds rather than seconds.
  */
 
 export interface ChainBalance {

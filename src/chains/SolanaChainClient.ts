@@ -1,3 +1,16 @@
+/**
+ * @packageDocumentation
+ * @module SolanaChainClient
+ * @description
+ * Agent adapter for the Solana blockchain.
+ * 
+ * This class extends the core `SolanaClient` to enable agentic operations on Solana.
+ * 
+ * Key Features:
+ * - Manages Solana specific transaction instructions.
+ * - Handles SPL Token transfers.
+ * - Integrates with Wormhole for cross-chain messages.
+ */
 import { SolanaClient as CoreSolanaClient, SolanaClientConfig as CoreSolanaClientConfig } from '@veridex/sdk/chains/solana';
 import { BaseAgentChainClient } from './ChainClient';
 

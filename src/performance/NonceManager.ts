@@ -1,8 +1,17 @@
 /**
- * Nonce Manager - Client-Side Nonce Tracking
+ * @packageDocumentation
+ * @module NonceManager
+ * @description
+ * Optimistic Nonce Management for High-Frequency Trading.
  * 
- * Optimizes nonce management by tracking nonces client-side,
- * eliminating relayer round-trips for nonce queries.
+ * Standard RPC nonce fetching is too slow for agents executing multiple transactions per second.
+ * This class tracks nonces strictly client-side to allow "fire and forget" transaction submission
+ * without waiting for the previous one to be mined.
+ * 
+ * Features:
+ * - **Optimistic Increment**: Immediately increments nonce upon reservation.
+ * - **Pending Queue**: Tracks nonces for in-flight transactions.
+ * - **Reorg Handling**: Can be reset if on-chain state diverges.
  */
 
 export class NonceManager {

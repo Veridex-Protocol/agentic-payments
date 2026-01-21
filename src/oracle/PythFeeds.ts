@@ -1,7 +1,14 @@
 /**
- * Pyth Network Price Feed IDs
+ * @packageDocumentation
+ * @module PythFeeds
+ * @description
+ * Configuration constants for Pyth Network Price Feeds.
  * 
  * Sourced from https://pyth.network/developers/price-feed-ids
+ * 
+ * Contains mappings for:
+ * - Specific Asset IDs (ETH, SOL, BTC).
+ * - Chain Native Gas Tokens (for gas estimation).
  */
 export const PYTH_FEED_IDS = {
     // Crypto

@@ -1,3 +1,16 @@
+/**
+ * @packageDocumentation
+ * @module CapabilityNegotiator
+ * @description
+ * Implements the UCP Capability Discovery protocol.
+ * 
+ * Agents and Merchants need to fetch a common set of features (e.g., supported payment methods,
+ * identity linking requirements, delivery options) before a transaction can occur.
+ * 
+ * This class handles:
+ * - Advertising supported capabilities (checkout, identity, orders).
+ * - Negotiating the intersection of Agent/Merchant capabilities.
+ */
 export interface NegotiationResult {
   agreed: string[];
   rejected: string[];

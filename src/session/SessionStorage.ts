@@ -1,3 +1,17 @@
+/**
+ * @packageDocumentation
+ * @module SessionStorage
+ * @description
+ * Persistence layer for agent session keys.
+ * 
+ * Handles the secure storage and retrieval of `StoredSession` objects.
+ * 
+ * Security Note:
+ * - Session private keys are stored ENCRYPTED (AES-GCM).
+ * - This module does NOT handle decryption; it only stores the encrypted blob.
+ * - In a browser environment, this uses `localStorage`. In Node.js, it could be adapted to use
+ *   a filesystem or database adapter.
+ */
 import { ethers } from 'ethers';
 
 export interface SessionKeyConfig {

@@ -1,8 +1,16 @@
 /**
- * React Hooks for Agent SDK
+ * @packageDocumentation
+ * @module ReactHooks
+ * @description
+ * React Hooks for integrating Agent functionality into web apps.
  * 
- * Provides React hooks for integrating agent wallet functionality
- * into React applications.
+ * Provides a set of convenient hooks (e.g., `useAgentWallet`, `usePayment`) that wrap
+ * the imperative SDK methods into reactive primitives.
+ * 
+ * Example:
+ * ```tsx
+ * const { pay, isPaying } = usePayment(wallet);
+ * ```
  */
 
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';

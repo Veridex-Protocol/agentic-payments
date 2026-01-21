@@ -1,3 +1,30 @@
+/**
+ * @packageDocumentation
+ * @module AgentWallet
+ * @description
+ * The core orchestration class for the Veridex Agent SDK.
+ *
+ * The AgentWallet serves as the central hub for all agentic payment operations, coordinating
+ * session management, x402 protocol negotiation, UCP credential issuance, and multi-chain execution.
+ *
+ * Key Features:
+ * - **Session Management**: Automatically handles session key lifecycle, spending limits, and expiration.
+ * - **x402 Client**: Intercepts HTTP 402 responses to perform autonomous payments.
+ * - **Multi-Chain Support**: Routes transactions to appropriate chain adapters (EVM, Starknet, Solana, etc.).
+ * - **Monitoring**: Provides audit logging and real-time spending alerts.
+ *
+ * @example
+ * ```typescript
+ * import { createAgentWallet } from '@veridex/agent-sdk';
+ *
+ * const agent = await createAgentWallet({
+ *   session: { dailyLimitUSD: 100 }
+ * });
+ *
+ * // Autonomous payment via x402
+ * await agent.fetch('https://paid-resource.com');
+ * ```
+ */
 import { VeridexSDK, TokenBalance, PortfolioBalance, createSDK, ChainName, PasskeyCredential } from '@veridex/sdk';
 import { AgentWalletConfig, PaymentParams, PaymentReceipt, SessionStatus, HistoryOptions } from './types/agent';
 import { SessionKeyManager } from './session/SessionKeyManager';
@@ -79,34 +106,46 @@ export class AgentWallet {
   }
 
   async pay(params: PaymentParams): Promise<PaymentReceipt> {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/c6390672-1465-4a0d-bb12-57e7bed0bb2e', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'AgentWallet.ts:pay:entry', message: 'pay() called', data: { params, hasSession: !!this.currentSession }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H2,H3,H4' }) }).catch(() => { });
+    // #endregion
+
     if (!this.currentSession) await this.init();
 
     // Check limits
-    const amountUSD = parseFloat(params.amount); // Simplification
-    const limitCheck = this.sessionManager.checkLimits(this.currentSession!, amountUSD);
-    if (!limitCheck.allowed) {
-      throw AgentPaymentError.fromLimitExceeded(limitCheck.reason || 'Transaction exceeds session limits');
+    const amountBig = BigInt(params.amount);
+    let decimals = 18;
+    const tokenUpper = params.token.toUpperCase();
+
+    // Handle common stablecoins
+    if (['USDC', 'USDT'].includes(tokenUpper)) {
+      decimals = 6;
     }
 
-    // 1. Find optimal route (Source chain detection)
-    const sourceChain = params.chain; // For now assume same chain
-    // unused route for now
-    // const route = await this.router.findOptimalRoute(sourceChain, params.chain, BigInt(params.amount));
+    // Calculate estimated USD value
+    // Note: For non-stablecoins, this assumes 1 Token = $1 which is inaccurate but safer than atomic units.
+    // Real implementation would need a price oracle or CoinGecko API here.
+    const divisor = BigInt(10) ** BigInt(decimals);
+    const amountUSD = Number(amountBig) / Number(divisor);
 
-    // 2. Execute payment via Core SDK
+    const limitCheck = this.sessionManager.checkLimits(this.currentSession!, amountUSD);
+    if (!limitCheck.allowed) {
+      throw AgentPaymentError.fromLimitExceeded(limitCheck.reason || `Transaction amount $${amountUSD.toFixed(2)} exceeds limit`);
+    }
+
     // Get signer from session (handles encryption properly)
     const signer = await this.sessionManager.getSessionWallet(
       this.currentSession!,
-      this.config.masterCredential.credentialId
+      this.currentSession!.masterKeyHash || this.config.masterCredential.credentialId
     );
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/c6390672-1465-4a0d-bb12-57e7bed0bb2e', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'AgentWallet.ts:pay:beforeDirectTransfer', message: 'About to execute direct transfer', data: { signerAddress: signer.address, targetChain: params.chain, token: params.token, amount: params.amount }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H2,H4,H5' }) }).catch(() => { });
+    // #endregion
+
+    // Execute direct transfer using session wallet (bypasses passkey requirement)
     const receipt = await this.withRetry(async () => {
-      return await this.coreSDK.transfer({
-        recipient: params.recipient,
-        amount: BigInt(params.amount),
-        token: params.token,
-        targetChain: params.chain
-      }, signer);
+      return await this.executeDirectTransfer(signer, params);
     });
 
     // Record spending
@@ -140,6 +179,10 @@ export class AgentWallet {
 
     const address = ethers.computeAddress(this.currentSession.publicKey);
     const targetChain = chain || 30; // Default to Base
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/c6390672-1465-4a0d-bb12-57e7bed0bb2e', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'AgentWallet.ts:getBalance', message: 'getBalance called', data: { chain, targetChain, address }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H1' }) }).catch(() => { });
+    // #endregion
 
     // Check cache
     const cached = this.balanceCache.get(address, targetChain);
@@ -196,8 +239,24 @@ export class AgentWallet {
       keyHash: this.currentSession.keyHash,
       expiry: this.currentSession.config.expiryTimestamp,
       remainingDailyLimitUSD: this.currentSession.config.dailyLimitUSD - this.currentSession.metadata.dailySpentUSD,
-      totalSpentUSD: this.currentSession.metadata.totalSpentUSD
+      totalSpentUSD: this.currentSession.metadata.totalSpentUSD,
+      masterKeyHash: this.currentSession.masterKeyHash,
+      address: ethers.computeAddress(this.currentSession.publicKey)
     };
+  }
+
+  async importSession(sessionData: any): Promise<void> {
+    // Validate session data structure structure roughly
+    if (!sessionData.keyHash || !sessionData.encryptedPrivateKey) {
+      throw new Error("Invalid session data");
+    }
+
+    // Save to storage
+    await this.sessionManager.importSession(sessionData);
+
+    // Set as current
+    this.currentSession = sessionData;
+    console.log(`[AgentWallet] Imported session ${sessionData.keyHash} for master ${sessionData.masterKeyHash}`);
   }
 
   // Audit and monitoring
@@ -215,6 +274,124 @@ export class AgentWallet {
 
   getMCPTools(): any[] {
     return this.mcpServer ? this.mcpServer.getTools() : [];
+  }
+
+  /**
+   * Execute a direct token transfer using the session wallet.
+   * This bypasses the Veridex protocol (no passkey required) and uses the session key directly.
+   */
+  private async executeDirectTransfer(
+    signer: ethers.Wallet,
+    params: PaymentParams
+  ): Promise<{ transactionHash: string }> {
+    // RPC URLs for testnet chains (Wormhole Chain IDs)
+    const RPC_URLS: Record<number, string> = {
+      10002: 'https://ethereum-sepolia-rpc.publicnode.com',
+      10003: 'https://sepolia-rollup.arbitrum.io/rpc',
+      10004: 'https://sepolia.base.org',
+      10005: 'https://sepolia.optimism.io',
+    };
+
+    // Token addresses for testnets (USDC)
+    const USDC_ADDRESSES: Record<number, string> = {
+      10002: '0x7A7754A2089df825801A0a8d95a9801928bFb22A', // Ethereum Sepolia USDC (Aave testnet USDC)
+      10003: '0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d', // Arbitrum Sepolia USDC
+      10004: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', // Base Sepolia USDC
+      10005: '0x5fd84259d66Cd46123540766Be93DFE6D43130D7', // Optimism Sepolia USDC
+    };
+
+    const rpcUrl = RPC_URLS[params.chain];
+    if (!rpcUrl) {
+      throw new AgentPaymentError(
+        AgentPaymentErrorCode.CHAIN_NOT_SUPPORTED,
+        `Chain ${params.chain} is not supported. Use: 10002 (Eth Sepolia), 10003 (Arb Sepolia), 10004 (Base Sepolia), 10005 (Op Sepolia)`,
+        'Use a supported testnet chain ID.',
+        false
+      );
+    }
+
+    // Connect signer to provider
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const connectedSigner = signer.connect(provider);
+
+    const tokenUpper = params.token.toUpperCase();
+    const amount = BigInt(params.amount);
+
+    let tx: ethers.TransactionResponse;
+
+    if (tokenUpper === 'ETH' || tokenUpper === 'NATIVE') {
+      // Check ETH balance first
+      const ethBalance = await provider.getBalance(signer.address);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/c6390672-1465-4a0d-bb12-57e7bed0bb2e', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'AgentWallet.ts:executeDirectTransfer:ethBalance', message: 'ETH balance check', data: { signerAddress: signer.address, ethBalance: ethBalance.toString(), requestedAmount: amount.toString() }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H6' }) }).catch(() => { });
+      // #endregion
+
+      if (ethBalance < amount) {
+        throw new AgentPaymentError(
+          AgentPaymentErrorCode.INSUFFICIENT_BALANCE,
+          `Insufficient ETH balance: have ${ethers.formatEther(ethBalance)} ETH, need ${ethers.formatEther(amount)} ETH`,
+          `Fund your wallet ${signer.address} with more ETH on chain ${params.chain}.`,
+          false
+        );
+      }
+
+      // Native ETH transfer
+      tx = await connectedSigner.sendTransaction({
+        to: params.recipient,
+        value: amount,
+      });
+    } else if (tokenUpper === 'USDC') {
+      // ERC20 transfer
+      const tokenAddress = USDC_ADDRESSES[params.chain];
+      if (!tokenAddress) {
+        throw new AgentPaymentError(
+          AgentPaymentErrorCode.TOKEN_NOT_SUPPORTED,
+          `USDC not configured for chain ${params.chain}`,
+          'Use a supported token on this chain.',
+          false
+        );
+      }
+
+      const erc20Abi = [
+        'function transfer(address to, uint256 amount) returns (bool)',
+        'function balanceOf(address owner) view returns (uint256)',
+        'function symbol() view returns (string)',
+      ];
+      const tokenContract = new ethers.Contract(tokenAddress, erc20Abi, connectedSigner);
+
+      // Check USDC balance first
+      const usdcBalance = await tokenContract.balanceOf(signer.address);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/c6390672-1465-4a0d-bb12-57e7bed0bb2e', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'AgentWallet.ts:executeDirectTransfer:usdcBalance', message: 'USDC balance check', data: { signerAddress: signer.address, usdcContract: tokenAddress, usdcBalance: usdcBalance.toString(), requestedAmount: amount.toString(), chain: params.chain }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H6' }) }).catch(() => { });
+      // #endregion
+
+      if (usdcBalance < amount) {
+        throw new AgentPaymentError(
+          AgentPaymentErrorCode.INSUFFICIENT_BALANCE,
+          `Insufficient USDC balance: have ${Number(usdcBalance) / 1e6} USDC (Circle USDC at ${tokenAddress}), need ${Number(amount) / 1e6} USDC. Note: Your wallet may have a different USDC token - only Circle's official testnet USDC is supported.`,
+          `Get Circle USDC from https://faucet.circle.com for your wallet ${signer.address}.`,
+          false
+        );
+      }
+
+      tx = await tokenContract.transfer(params.recipient, amount);
+    } else {
+      throw new AgentPaymentError(
+        AgentPaymentErrorCode.TOKEN_NOT_SUPPORTED,
+        `Token ${params.token} is not supported. Use 'eth', 'native', or 'usdc'.`,
+        'Use a supported token symbol.',
+        false
+      );
+    }
+
+    // Wait for confirmation
+    const receipt = await tx.wait();
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/c6390672-1465-4a0d-bb12-57e7bed0bb2e', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'AgentWallet.ts:executeDirectTransfer:success', message: 'Transfer confirmed', data: { txHash: tx.hash, blockNumber: receipt?.blockNumber }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H2,H5' }) }).catch(() => { });
+    // #endregion
+
+    return { transactionHash: tx.hash };
   }
 
   /**

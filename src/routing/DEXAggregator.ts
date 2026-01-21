@@ -1,9 +1,16 @@
 /**
- * DEX Integration - Token Swapping & Cross-Chain Aggregation
+ * @packageDocumentation
+ * @module DEXAggregator
+ * @description
+ * DEX Integration Layer for Token Swapping & Cross-Chain Aggregation.
  * 
- * Provides DEX aggregator integration for token swapping and
- * cross-chain route finding (Swap -> Bridge -> Swap).
- * Supports CCTP for native USDC transfers.
+ * Provides a unified interface for token swaps across different chains, abstracting
+ * specific DEX implementations (Uniswap, Jupiter, etc.).
+ * 
+ * Key Features:
+ * - **Swap**: executes simulated or real swaps on EVM and Solana.
+ * - **Cross-Chain Route Finding**: Finds paths like (Swap -> Bridge -> Swap).
+ * - **CCTP Support**: Natively supports Circle's Cross-Chain Transfer Protocol for USDC.
  * 
  * NOTE: All chain IDs in this module are Wormhole Chain IDs by default.
  */

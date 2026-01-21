@@ -1,3 +1,18 @@
+/**
+ * @packageDocumentation
+ * @module AgentSDK
+ * @description
+ * The main entry point for the Veridex Agent SDK (@veridex/agentic-payments).
+ *
+ * This package provides a high-level, autonomous payment layer for AI agents, built on top of the
+ * core Veridex SDK. It enables agents to manage spending limits, negotiate payments via x402,
+ * and issue Universal Commerce Protocol (UCP) credentials.
+ *
+ * Exports:
+ * - **createAgentWallet**: Factory function to initialize the agent.
+ * - **AgentWallet**: The main class for agent operations.
+ * - **Types**: Comprehensive type definitions for sessions, payments, and protocols.
+ */
 import { AgentWallet } from './AgentWallet';
 import { AgentWalletConfig } from './types/agent';
 
@@ -56,3 +71,12 @@ export * from './oracle/PythFeeds';
 
 // DEX
 export * from './routing/DEXAggregator';
+
+// Re-export core SDK functions for frontend convenience and to avoid dual-package usage
+export {
+  createSDK,
+  generateSecp256k1KeyPair,
+  computeSessionKeyHash,
+  deriveEncryptionKey,
+  encrypt
+} from '@veridex/sdk';

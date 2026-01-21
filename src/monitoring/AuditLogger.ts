@@ -1,3 +1,20 @@
+/**
+ * @packageDocumentation
+ * @module AuditLogger
+ * @description
+ * Immutable transaction logging for compliance and auditing.
+ * 
+ * Every payment attempt (successful or failed) is recorded here. In a production environment,
+ * this should ideally write to a tamper-evident log or database. Currently, it persists
+ * to local storage and memory for the demo.
+ * 
+ * Records:
+ * - Timestamp
+ * - Amount (USD and Native)
+ * - Chain ID
+ * - Recipient
+ * - Session ID
+ */
 import { PaymentReceipt, HistoryOptions } from '../types/agent';
 
 export interface PaymentRecord extends PaymentReceipt {

@@ -1,3 +1,16 @@
+/**
+ * @packageDocumentation
+ * @module SpendingTracker
+ * @description
+ * Enforces spending limits for active sessions.
+ * 
+ * This class tracks cumulative spending (in USD) against the session's configured limits:
+ * - **Daily Limit**: Maximum USD spent within a 24-hour rolling window.
+ * - **Per-Transaction Limit**: Maximum USD allowed for a single atomic transaction.
+ * 
+ * It manages the state updates for `dailySpentUSD` and strictly returns `false` if
+ * a requested transaction would breach these policies.
+ */
 import { StoredSession } from './SessionStorage';
 
 export interface LimitCheckResult {
@@ -43,7 +56,7 @@ export class SpendingTracker {
 
   recordSpending(session: StoredSession, amountUSD: number): void {
     const now = Date.now();
-    
+
     // Reset daily limit if 24h passed
     if (now > session.metadata.dailyResetAt) {
       session.metadata.dailySpentUSD = 0;

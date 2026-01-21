@@ -1,5 +1,14 @@
 /**
- * Performance Module Exports
+ * @packageDocumentation
+ * @module Performance
+ * @description
+ * Performance optimization utilities for high-frequency agent operations.
+ * 
+ * Exports:
+ * - {@link TransactionQueue}: Batch processing.
+ * - {@link NonceManager}: Optimistic concurrency control.
+ * - {@link ConnectionPool}: HTTP resource management.
+ * - {@link ParallelRouteFinder}: Fast multi-chain discovery.
  */
 
 export { NonceManager } from './NonceManager';

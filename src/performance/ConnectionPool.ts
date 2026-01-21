@@ -1,10 +1,14 @@
 /**
- * Connection Pool - HTTP Connection Reuse
+ * @packageDocumentation
+ * @module ConnectionPool
+ * @description
+ * HTTP Connection Pooling for High-Throughput Agents.
  * 
- * Implements connection pooling for HTTP requests to:
- * - Reduce connection overhead
- * - Improve throughput for 402 retries
- * - Manage concurrent connections per host
+ * Agents often make rapid bursts of requests (e.g., checking prices, simulating transactions).
+ * This module maintains reuseable `http.Agent` and `https.Agent` instances to:
+ * - Reduce TCP handshake overhead (Keep-Alive).
+ * - Limit concurrent socket connections (Resource management).
+ * - Prevent "socket hang up" errors under load.
  */
 
 import https from 'https';

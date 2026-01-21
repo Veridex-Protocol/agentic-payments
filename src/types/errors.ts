@@ -1,3 +1,12 @@
+/**
+ * @packageDocumentation
+ * @module AgentErrors
+ * @description
+ * Standardized error handling for the Agent SDK.
+ * 
+ * Provides typed error codes and actionable remediation steps for common
+ * failure scenarios (e.g., Session Expired, Limit Exceeded, Network Error).
+ */
 export enum AgentPaymentErrorCode {
     // Session errors (1xxx)
     SESSION_EXPIRED = 1001,
@@ -33,6 +42,10 @@ export enum AgentPaymentErrorCode {
     TOKEN_EXPIRED = 7001,
     TOKEN_INVALID = 7002,
     TOKEN_REVOKED = 7003,
+    TOKEN_NOT_SUPPORTED = 7004,
+
+    // Chain errors (8xxx)
+    CHAIN_NOT_SUPPORTED = 8001,
 }
 
 export class AgentPaymentError extends Error {

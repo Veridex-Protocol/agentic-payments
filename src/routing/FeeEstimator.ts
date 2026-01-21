@@ -1,3 +1,16 @@
+/**
+ * @packageDocumentation
+ * @module FeeEstimator
+ * @description
+ * Cross-chain fee estimation service.
+ * 
+ * Accurately calculating the cost of a cross-chain transaction is complex because it involves:
+ * - Source chain gas fees.
+ * - Wormhole/Relayer fees (in source token).
+ * - Target chain redemption fees.
+ * 
+ * This module connects to the Veridex Relayer API to get real-time fee quotes.
+ */
 import { createRelayerClient, RelayerClient } from '@veridex/sdk';
 
 export class FeeEstimator {

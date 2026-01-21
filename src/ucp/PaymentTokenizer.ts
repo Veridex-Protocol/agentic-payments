@@ -1,3 +1,17 @@
+/**
+ * @packageDocumentation
+ * @module PaymentTokenizer
+ * @description
+ * Handles the secure generation and validation of UCP Payment Tokens.
+ *
+ * In UCP, agents do not share their raw keys or card numbers. Instead, they issue
+ * short-lived, encrypted tokens that bind a specific session to a specific merchant interaction.
+ *
+ * This module manages:
+ * - Token issuance (binding key hash and limits).
+ * - Caching and TTL management.
+ * - Token revocation.
+ */
 import { StoredSession } from '../session/SessionStorage';
 import { ethers } from 'ethers';
 

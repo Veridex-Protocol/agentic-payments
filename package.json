@@ -12,7 +12,7 @@
         "lint": "eslint src/"
     },
     "dependencies": {
-        "@veridex/sdk": "latest",
+        "@veridex/sdk": "file:../sdk",
         "@ucp-js/sdk": "latest",
         "axios": "^1.6.0",
         "zod": "^3.22.0",

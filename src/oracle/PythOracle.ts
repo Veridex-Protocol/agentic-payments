@@ -1,3 +1,16 @@
+/**
+ * @packageDocumentation
+ * @module PythOracle
+ * @description
+ * Integration with Pyth Network for real-time asset pricing.
+ * 
+ * Agents need to know the USD value of assets to enforce spending limits (`dailyLimitUSD`).
+ * This class fetches real-time prices from Pyth's Hermes API.
+ * 
+ * Features:
+ * - **Caching**: caches prices for 30s to respect rate limits.
+ * - **Smart Fallbacks**: Maps generic chain names ("base") to specific feed IDs (ETH/USD).
+ */
 import axios from 'axios';
 import { PYTH_FEED_IDS, CHAIN_NATIVE_FEED_MAP, STARKNET_GAS_TOKEN_IS_ETH } from './PythFeeds';
 
