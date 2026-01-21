@@ -239,6 +239,7 @@ export class AgentWallet {
       expiry: this.currentSession.config.expiryTimestamp,
       remainingDailyLimitUSD: this.currentSession.config.dailyLimitUSD - this.currentSession.metadata.dailySpentUSD,
       totalSpentUSD: this.currentSession.metadata.totalSpentUSD,
+      masterKeyHash: this.currentSession.masterKeyHash,
       address: this.currentSession.walletAddress,
       limits: {
         dailyLimitUSD: this.currentSession.config.dailyLimitUSD,
@@ -251,6 +252,11 @@ export class AgentWallet {
     // Validate session data structure structure roughly
     if (!sessionData.keyHash || !sessionData.encryptedPrivateKey) {
       throw new Error("Invalid session data");
+    }
+
+    // Compute wallet address from publicKey if not already present
+    if (!sessionData.walletAddress && sessionData.publicKey) {
+      sessionData.walletAddress = ethers.computeAddress(sessionData.publicKey);
     }
 
     // Save to storage
