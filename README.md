@@ -1,5 +1,8 @@
 # @veridex/agentic-payments
 
+[![npm version](https://img.shields.io/npm/v/@veridex/agentic-payments.svg)](https://www.npmjs.com/package/@veridex/agentic-payments)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A comprehensive SDK for autonomous agent payments, built on top of `@veridex/sdk`. This package provides session key management, x402 protocol support, UCP credential provider, MCP server integration, and multi-chain payment routing.
 
 ## Features
