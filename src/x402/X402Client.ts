@@ -30,6 +30,7 @@ import { StoredSession } from '../session/SessionStorage';
 import { UCPClient } from '../ucp/UCPClient';
 import {
   Payment402Request,
+  Payment402Response,
   PaymentSettlementResponse,
   X402ClientConfig,
 } from '../types/x402';
@@ -353,6 +354,11 @@ export class X402Client {
     }
 
     // Default generic settlement (e.g. via direct RPC or generic facilitator)
-    // ... existing implementation ...
+    throw new AgentPaymentError(
+        AgentPaymentErrorCode.NETWORK_ERROR,
+        `No settlement adapter available for network: ${network}`,
+        'Ensure the SDK is configured with an adapter for this network.',
+        false
+    );
   }
 }

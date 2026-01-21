@@ -35,6 +35,7 @@ export interface StoredSession {
     transactionCount: number;
   };
   masterKeyHash: string; // Reference to master passkey
+  walletAddress?: string; // Derived EVM address
 }
 
 export class SessionStorage {

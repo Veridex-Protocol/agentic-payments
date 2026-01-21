@@ -3,8 +3,8 @@ import {
   Payment402Request, 
   Payment402Response, 
   PaymentSettlementResponse 
-} from '../types/x402';
-import { AgentPaymentError, AgentPaymentErrorCode } from '../types/errors';
+} from '../../types/x402';
+import { AgentPaymentError, AgentPaymentErrorCode } from '../../types/errors';
 
 /**
  * Adapter for the Cronos x402 Facilitator.
@@ -30,13 +30,16 @@ export class CronosFacilitatorAdapter {
   async verify(request: Payment402Request, response: Payment402Response): Promise<boolean> {
     try {
       const body = this.facilitator.buildVerifyRequest(
-        response.payload, // Base64 header
+        response.paymentPayload, // Base64 header (Payment402Response has paymentPayload)
         {
-          scheme: request.scheme,
+          scheme: request.scheme as any, // Cast to facilitator Scheme type
           network: request.network as any,
           payTo: request.recipient,
-          asset: request.token,
+          asset: request.token as any, // Cast to facilitator Contract type
           maxAmountRequired: request.amount,
+          description: request.original.description || 'Payment for resource',
+          maxTimeoutSeconds: 300, // Default 5 minutes
+          mimeType: 'application/json', // Default mimeType
         }
       );
 
@@ -57,12 +60,15 @@ export class CronosFacilitatorAdapter {
   async settle(request: Payment402Request, response: Payment402Response): Promise<PaymentSettlementResponse> {
     try {
       const body = this.facilitator.buildVerifyRequest(
-        response.payload,
+        response.paymentPayload,
         {
-          scheme: request.scheme,
+          scheme: request.scheme as any,
           network: request.network as any,
+          description: request.original.description || 'Payment for resource',
+          maxTimeoutSeconds: 300, // Default 5 minutes
+          mimeType: 'application/json', // Default mimeType
           payTo: request.recipient,
-          asset: request.token,
+          asset: request.token as any,
           maxAmountRequired: request.amount,
         }
       );
@@ -71,8 +77,10 @@ export class CronosFacilitatorAdapter {
 
       if (result.event === 'payment.failed') {
         throw new AgentPaymentError(
-          AgentPaymentErrorCode.TRANSACTION_FAILED,
-          `Cronos settlement failed: ${result.error}`
+          AgentPaymentErrorCode.PAYMENT_FAILED,
+          `Cronos settlement failed: ${result.error}`,
+          'Check token balance and approval.',
+          false
         );
       }
 
@@ -80,12 +88,14 @@ export class CronosFacilitatorAdapter {
         success: true,
         transactionHash: result.txHash,
         network: request.network,
-        timestamp: new Date(result.timestamp).getTime(),
+        amount: request.amount, // Required by PaymentSettlementResponse
       };
     } catch (error: any) {
       throw new AgentPaymentError(
-        AgentPaymentErrorCode.TRANSACTION_FAILED,
-        `Cronos settlement exception: ${error.message}`
+        AgentPaymentErrorCode.PAYMENT_FAILED,
+        `Cronos settlement exception: ${error.message}`,
+        'Retry operation.',
+        true
       );
     }
   }
