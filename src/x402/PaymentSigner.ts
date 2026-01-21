@@ -42,7 +42,24 @@ const TOKEN_DECIMALS: Record<string, number> = {
   '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85': 6, // Optimism USDC
   '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0': 6, // Cronos Testnet devUSDC.e
   '0xf951eC28187D9E5Ca673Da8FE6757E6f0Be5F77C': 6, // Cronos Mainnet USDC.e
+  '0x7A7754A2089df825801A0a8d95a9801928bFb22A': 6, // Ethereum Sepolia USDC
 };
+
+// Token symbol to address mapping for x402 (default to Base USDC)
+const TOKEN_SYMBOL_TO_ADDRESS: Record<string, Record<number, string>> = {
+  'USDC': {
+    2: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',   // Ethereum Mainnet
+    30: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',  // Base Mainnet
+    23: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',  // Arbitrum One
+    24: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',  // Optimism
+    25: '0xf951eC28187D9E5Ca673Da8FE6757E6f0Be5F77C',  // Cronos Mainnet
+    10002: '0x7A7754A2089df825801A0a8d95a9801928bFb22A', // Ethereum Sepolia
+    10025: '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0', // Cronos Testnet
+  },
+};
+
+// Default token address when chain-specific address is not found
+const DEFAULT_USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'; // Base USDC
 
 // Token metadata for EIP-712 domains
 const TOKEN_METADATA: Record<string, { name: string; version: string }> = {
@@ -79,6 +96,9 @@ export class PaymentSigner {
     const now = Math.floor(Date.now() / 1000);
     const deadline = request.deadline || (now + DEFAULT_VALIDITY_WINDOW_SECONDS);
 
+    // Resolve token address from symbol if needed
+    const tokenAddress = this.resolveTokenAddress(request.token, request.chain);
+
     // Get token decimals
     const decimals = this.getTokenDecimals(request.token);
 
@@ -107,13 +127,14 @@ export class PaymentSigner {
     };
 
     // EIP-712 domain - for x402 exact scheme on EVM
-    const tokenMetadata = TOKEN_METADATA[request.token.toLowerCase()] || { name: 'x402', version: '1' };
+    const tokenMetadata = TOKEN_METADATA[tokenAddress.toLowerCase()] || { name: 'x402', version: '1' };
+    const evmChainId = this.wormholeToEvmChainId(request.chain);
 
     const domain: ethers.TypedDataDomain = {
       name: tokenMetadata.name,
       version: tokenMetadata.version,
-      chainId: this.wormholeToEvmChainId(request.chain),
-      verifyingContract: request.token,
+      chainId: evmChainId,
+      verifyingContract: tokenAddress,
     };
 
     // EIP-712 types for TransferWithAuthorization
@@ -165,18 +186,31 @@ export class PaymentSigner {
 
   /**
    * Verify a payment signature (for testing/debugging).
+   * 
+   * @param signature - The EIP-712 signature to verify
+   * @param authorization - The ERC-3009 authorization data
+   * @param expectedSigner - Expected signer address
+   * @param chainId - EVM chain ID
+   * @param tokenAddress - Optional token contract address used as verifyingContract
    */
   verifySignature(
     signature: string,
     authorization: ERC3009Authorization,
     expectedSigner: string,
-    chainId: number
+    chainId: number,
+    tokenAddress?: string
   ): boolean {
     try {
+      // Get token metadata if available
+      const tokenMetadata = tokenAddress
+        ? (TOKEN_METADATA[tokenAddress.toLowerCase()] || { name: 'x402', version: '1' })
+        : { name: 'x402', version: '1' };
+
       const domain: ethers.TypedDataDomain = {
-        name: 'x402',
-        version: '1',
+        name: tokenMetadata.name,
+        version: tokenMetadata.version,
         chainId,
+        ...(tokenAddress && { verifyingContract: tokenAddress }),
       };
 
       const types = {
@@ -215,8 +249,37 @@ export class PaymentSigner {
     }
 
     // Default to 6 for stablecoins (most x402 payments are USDC)
+    if (!token.startsWith('0x')) {
+      // This is a symbol, not an address - don't warn for known symbols
+      return 6;
+    }
     console.warn(`[x402] Unknown token decimals for ${token}, defaulting to 6`);
     return 6;
+  }
+
+  /**
+   * Resolve token symbol to address for the given chain.
+   * If already an address, returns it as-is.
+   */
+  private resolveTokenAddress(token: string, wormholeChainId: number): string {
+    // If it's already an address, return it
+    if (token.startsWith('0x') && token.length === 42) {
+      return token;
+    }
+
+    // Look up the token symbol
+    const upperSymbol = token.toUpperCase();
+    const chainAddresses = TOKEN_SYMBOL_TO_ADDRESS[upperSymbol];
+    if (chainAddresses) {
+      const address = chainAddresses[wormholeChainId];
+      if (address) {
+        return address;
+      }
+    }
+
+    // Default to Base USDC for unknown symbols (for testing)
+    console.warn(`[x402] Unknown token symbol ${token} for chain ${wormholeChainId}, using default USDC address`);
+    return DEFAULT_USDC_ADDRESS;
   }
 
   /**

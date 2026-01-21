@@ -278,7 +278,8 @@ describe('PaymentSigner', () => {
                 result.signature,
                 authorization,
                 testWallet.address,
-                8453 // Base EVM chain ID
+                8453, // Base EVM chain ID
+                '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' // Base USDC address
             );
 
             expect(isValid).toBe(true);
@@ -287,7 +288,7 @@ describe('PaymentSigner', () => {
         it('should reject signatures from different signers', async () => {
             const request = {
                 amount: '1000000',
-                token: 'USDC',
+                token: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // Base USDC
                 recipient: '0x0000000000000000000000000000000000000123',
                 chain: 30,
                 network: 'base',
@@ -304,7 +305,8 @@ describe('PaymentSigner', () => {
                 result.signature,
                 authorization,
                 wrongAddress,
-                8453
+                8453,
+                '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' // Base USDC address
             );
 
             expect(isValid).toBe(false);
@@ -345,7 +347,7 @@ describe('x402 - Property Tests', () => {
 
                         const request = {
                             amount: '1000000',
-                            token: 'USDC',
+                            token: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // Base USDC
                             recipient: '0x0000000000000000000000000000000000000123',
                             chain: 30,
                             network: 'base',
