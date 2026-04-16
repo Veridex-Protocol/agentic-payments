@@ -148,13 +148,12 @@ export class X402Client {
     // Check session spending limits
     const limitResult = this.sessionManager.checkLimits(session, amountUSD);
     if (!limitResult.allowed) {
-      throw AgentPaymentError.fromLimitExceeded(
-        limitResult.reason || 'Transaction exceeds session limits',
-        {
-          requestedAmount: paymentRequest.amount,
-          requestedAmountUSD: amountUSD,
-          remainingDailyLimit: limitResult.remainingDailyLimitUSD,
-        }
+      // VDX-PAY-018: Generic error to prevent session state enumeration
+      throw new AgentPaymentError(
+        AgentPaymentErrorCode.PAYMENT_FAILED,
+        'Payment authorization failed',
+        'The payment could not be authorized. Check session status and limits.',
+        false
       );
     }
 
@@ -203,12 +202,12 @@ export class X402Client {
       // The server should now recognize the satisfied payment
       return await this.performFetch(originalUrl, originalOptions);
     } catch (error: any) {
+      // VDX-PAY-018: Generic error message to avoid leaking session/payment internals
       throw new AgentPaymentError(
         AgentPaymentErrorCode.UCP_NEGOTIATION_FAILED,
-        `UCP checkout failed: ${error.message}`,
-        'The Universal Commerce Protocol checkout could not be completed. Try again or use a different payment method.',
-        true,
-        { checkoutUrl, originalError: error }
+        'Payment checkout failed',
+        'The checkout flow could not be completed. Try again or use a different payment method.',
+        true
       );
     }
   }
@@ -306,11 +305,21 @@ export class X402Client {
   /**
    * Estimate USD value of a payment request.
    * 
-   * In production, this should query a price oracle.
-   * For now, we assume stablecoins are 1:1 with USD.
+   * VDX-PAY-006: Fail-closed — rejects payment if USD value cannot be
+   * reliably estimated. Only known stablecoins with standard decimals
+   * are allowed to pass.
    */
   private estimateUSDValue(request: Payment402Request): number {
     const amount = parseFloat(request.amount);
+
+    if (!isFinite(amount) || amount <= 0) {
+      throw new AgentPaymentError(
+        AgentPaymentErrorCode.PAYMENT_FAILED,
+        'Invalid payment amount: cannot estimate USD value',
+        'The payment amount is not a valid positive number.',
+        false
+      );
+    }
 
     // Check if token is a known stablecoin
     const stablecoins = ['USDC', 'USDT', 'DAI', 'BUSD', 'TUSD'];
@@ -318,19 +327,22 @@ export class X402Client {
       (s) => request.token.toUpperCase().includes(s)
     );
 
-    if (isStablecoin) {
-      // Amount might be in smallest unit (e.g., 1000000 = 1 USDC)
-      // If amount is very large, divide by decimals
-      if (amount > 1_000_000) {
-        return amount / 1_000_000; // Assuming 6 decimals
-      }
-      return amount;
+    if (!isStablecoin) {
+      // VDX-PAY-006: Fail-closed for non-stablecoins — price oracle required
+      throw new AgentPaymentError(
+        AgentPaymentErrorCode.PAYMENT_FAILED,
+        `Cannot estimate USD value for non-stablecoin token: ${request.token}. Price oracle integration required.`,
+        'Only stablecoin payments are currently supported for autonomous agents. Configure a price oracle for other tokens.',
+        false
+      );
     }
 
-    // For non-stablecoins, we'd need a price oracle
-    // For safety, reject or use a conservative estimate
-    console.warn('[x402] Non-stablecoin payment detected, using 1:1 USD estimate');
-    return amount > 1_000_000 ? amount / 1_000_000 : amount;
+    // Amount might be in smallest unit (e.g., 1000000 = 1 USDC)
+    // If amount is very large, divide by decimals
+    if (amount > 1_000_000) {
+      return amount / 1_000_000; // Assuming 6 decimals
+    }
+    return amount;
   }
 
   /**

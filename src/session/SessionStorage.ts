@@ -31,6 +31,8 @@ export interface StoredSession {
     lastUsedAt: number;
     totalSpentUSD: number;
     dailySpentUSD: number;
+    /** Integer cents to avoid floating-point errors (VDX-PAY-005) */
+    dailySpentCents?: number;
     dailyResetAt: number;
     transactionCount: number;
     pausedAt?: number;

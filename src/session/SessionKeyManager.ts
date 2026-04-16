@@ -34,6 +34,9 @@ export class SessionKeyManager {
   private storage: SessionStorage;
   private tracker: SpendingTracker;
   private encryptionKey?: CryptoKey;
+  /** VDX-PAY-014: Rate limit tracking for session creation per master key */
+  private sessionCreationLog: Map<string, number[]> = new Map();
+  private static readonly MAX_SESSIONS_PER_HOUR = 10;
 
   constructor() {
     this.storage = new SessionStorage();
@@ -56,6 +59,9 @@ export class SessionKeyManager {
     masterKey: PasskeyCredential,
     config: SessionKeyConfig
   ): Promise<StoredSession> {
+    // VDX-PAY-014: Rate limit session creation per master key
+    this.enforceSessionCreationRateLimit(masterKey.keyHash);
+
     // Validate configuration
     this.validateConfig(config);
 
@@ -146,11 +152,27 @@ export class SessionKeyManager {
 
   /**
    * Record spending after a successful transaction.
-   * 
-   * @param session - Session that made the payment
-   * @param amountUSD - Amount spent in USD
+   * VDX-PAY-011: Re-validates session expiry before recording.
    */
   async recordSpending(session: StoredSession, amountUSD: number): Promise<void> {
+    // VDX-PAY-011: Re-check session validity before recording spending
+    if (!this.isSessionValid(session)) {
+      throw new AgentPaymentError(
+        AgentPaymentErrorCode.SESSION_INVALID,
+        'Session has expired — cannot record spending',
+        'The session expired between limit check and spending record.',
+        false
+      );
+    }
+    if (this.isSessionPaused(session)) {
+      throw new AgentPaymentError(
+        AgentPaymentErrorCode.SESSION_INVALID,
+        'Session is paused — cannot record spending',
+        'The session was paused between limit check and spending record.',
+        false
+      );
+    }
+
     this.tracker.recordSpending(session, amountUSD);
     session.metadata.lastUsedAt = Date.now();
     await this.storage.saveSession(session);
@@ -248,13 +270,16 @@ export class SessionKeyManager {
       this.encryptionKey = await deriveEncryptionKey(masterCredentialId);
     }
 
-    // Handle both encrypted (base64) and unencrypted (hex) formats
-    // This provides backwards compatibility during migration
-    // Check for raw private key (32 bytes = 66 chars including 0x prefix)
+    // VDX-PAY-004: SECURITY — Reject unencrypted private keys.
+    // Legacy/development code path that accepted raw hex keys has been removed.
+    // All session keys MUST be encrypted at rest.
     if (session.encryptedPrivateKey.startsWith('0x') && session.encryptedPrivateKey.length === 66) {
-      // Unencrypted hex format (legacy/development)
-      console.warn('[SessionKeyManager] Session using unencrypted private key - migrate to encrypted storage');
-      return ethers.getBytes(session.encryptedPrivateKey);
+      throw new AgentPaymentError(
+        AgentPaymentErrorCode.SESSION_INVALID,
+        'SECURITY: Unencrypted session key detected. Migration to encrypted storage required.',
+        'This session uses a legacy unencrypted key format that is no longer supported. Re-create the session.',
+        false
+      );
     }
 
     // If it starts with 0x but is longer, it's a HEX-encoded ENCRYPTED blob (from frontend)
@@ -282,9 +307,14 @@ export class SessionKeyManager {
     session: StoredSession,
     masterCredentialId: string
   ): Promise<ethers.Wallet> {
-    // Only treat as raw private key if it's 0x AND exactly 32 bytes (66 chars)
+    // VDX-PAY-004: SECURITY — Reject unencrypted private keys in wallet creation too.
     if (session.encryptedPrivateKey.startsWith('0x') && session.encryptedPrivateKey.length === 66) {
-      return new ethers.Wallet(session.encryptedPrivateKey);
+      throw new AgentPaymentError(
+        AgentPaymentErrorCode.SESSION_INVALID,
+        'SECURITY: Unencrypted session key detected. Migration to encrypted storage required.',
+        'This session uses a legacy unencrypted key format that is no longer supported. Re-create the session.',
+        false
+      );
     }
 
     const privateKey = await this.getDecryptedPrivateKey(session, masterCredentialId);
@@ -361,5 +391,30 @@ export class SessionKeyManager {
         false
       );
     }
+  }
+
+  /**
+   * VDX-PAY-014: Enforce rate limit on session creation per master key.
+   * Maximum of MAX_SESSIONS_PER_HOUR sessions per master key per hour.
+   */
+  private enforceSessionCreationRateLimit(masterKeyHash: string): void {
+    const now = Date.now();
+    const windowMs = 60 * 60 * 1000; // 1 hour
+    const existing = this.sessionCreationLog.get(masterKeyHash) || [];
+
+    // Prune entries outside the window
+    const recent = existing.filter(ts => now - ts < windowMs);
+
+    if (recent.length >= SessionKeyManager.MAX_SESSIONS_PER_HOUR) {
+      throw new AgentPaymentError(
+        AgentPaymentErrorCode.SESSION_INVALID,
+        `Session creation rate limit exceeded (max ${SessionKeyManager.MAX_SESSIONS_PER_HOUR} per hour)`,
+        'Wait before creating additional sessions.',
+        true
+      );
+    }
+
+    recent.push(now);
+    this.sessionCreationLog.set(masterKeyHash, recent);
   }
 }

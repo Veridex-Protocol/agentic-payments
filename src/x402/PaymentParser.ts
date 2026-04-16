@@ -182,8 +182,11 @@ export class PaymentParser {
       return numericId;
     }
 
-    console.warn(`[x402] Unknown network: ${network}, defaulting to Base (30)`);
-    return 30; // Default to Base
+    console.warn(`[x402] Unknown network: ${network}`);
+    // VDX-PAY-013: Fail on unknown network instead of silently defaulting to Base
+    throw new Error(
+      `Unknown network: "${network}". Supported: ${Object.keys(NETWORK_TO_CHAIN_ID).join(', ')}`
+    );
   }
 
   /**
