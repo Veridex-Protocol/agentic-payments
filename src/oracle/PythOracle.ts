@@ -13,6 +13,15 @@
  */
 import axios from 'axios';
 import { PYTH_FEED_IDS, CHAIN_NATIVE_FEED_MAP, STARKNET_GAS_TOKEN_IS_ETH } from './PythFeeds';
+import {
+    DEFAULT_MAX_CONFIDENCE_RATIO,
+    DEFAULT_MAX_STALE_SECONDS,
+    LowConfidenceError,
+    OracleError,
+    PriceQuote,
+    PriceQuoteOptions,
+    StalePriceError,
+} from './StalePriceError';
 
 const HERMES_ENDPOINT = 'https://hermes.pyth.network';
 
@@ -35,6 +44,8 @@ interface PythPrice {
 interface PriceCacheEntry {
     price: number;
     timestamp: number;
+    /** Full quote for strict-path reuse. Populated when fetched via getPriceStrict. */
+    quote?: PriceQuote;
 }
 
 export class PythOracle {
@@ -94,6 +105,132 @@ export class PythOracle {
         // Return 0 or cached legacy value if failed?
         // 0 indicates failure to caller to handle fallback
         return 0;
+    }
+
+    /**
+     * Strict price fetch. Validates publish-time freshness and confidence
+     * ratio. Throws `StalePriceError`, `LowConfidenceError`, or `OracleError`
+     * instead of returning `0`.
+     *
+     * Payment-critical paths (SpendingTracker, relayer settlement, session
+     * authorization) MUST use this method. The legacy `getPrice()` is
+     * retained only for UI-display callers that can tolerate fallback values.
+     */
+    async getPriceStrict(
+        feedIdOrSymbol: string,
+        options: PriceQuoteOptions = {},
+    ): Promise<PriceQuote> {
+        const maxStaleSeconds = options.maxStaleSeconds ?? DEFAULT_MAX_STALE_SECONDS;
+        const maxConfidenceRatio =
+            options.maxConfidenceRatio ?? DEFAULT_MAX_CONFIDENCE_RATIO;
+
+        const feedId = this.resolveFeedId(feedIdOrSymbol);
+
+        // Cache hit only if the cached quote itself is still within the
+        // *caller's* staleness bound. A 30s local TTL is not sufficient if
+        // the caller demanded maxStaleSeconds=5.
+        if (!options.forceFresh) {
+            const cached = this.cache.get(feedId);
+            if (cached?.quote) {
+                const ageSeconds = (Date.now() - cached.quote.publishTime * 1000) / 1000;
+                if (ageSeconds <= maxStaleSeconds) {
+                    return cached.quote;
+                }
+            }
+        }
+
+        const cleanId = feedId.startsWith('0x') ? feedId.slice(2) : feedId;
+        let response;
+        try {
+            response = await axios.get(`${HERMES_ENDPOINT}/v2/updates/price/latest`, {
+                params: { 'ids[]': cleanId },
+                timeout: 5000,
+            });
+        } catch (err) {
+            throw new OracleError(
+                'ORACLE_UNAVAILABLE',
+                `Hermes request failed for feed ${feedId}: ${(err as Error).message}`,
+                { feedId, cause: (err as Error).message },
+            );
+        }
+
+        const data = response.data;
+        if (!data?.parsed?.length) {
+            throw new OracleError(
+                'ORACLE_UNKNOWN_FEED',
+                `Hermes returned no price for feed ${feedId}`,
+                { feedId },
+            );
+        }
+
+        const update = data.parsed[0] as PythPrice;
+        const priceUnscaled = parseInt(update.price.price);
+        const confUnscaled = parseInt(update.price.conf);
+        const expo = update.price.expo;
+        const scale = Math.pow(10, expo);
+        const price = priceUnscaled * scale;
+        const confidence = confUnscaled * scale;
+        const publishTime = update.price.publish_time;
+
+        // Staleness guard (hard revert — cannot be disabled).
+        const ageSeconds = Date.now() / 1000 - publishTime;
+        if (ageSeconds > maxStaleSeconds) {
+            throw new StalePriceError(feedId, publishTime, ageSeconds, maxStaleSeconds);
+        }
+
+        // Confidence guard. Skip for zero/negative prices which are themselves
+        // a pathological signal handled below.
+        if (price <= 0) {
+            throw new OracleError(
+                'ORACLE_LOW_CONFIDENCE',
+                `Non-positive price ${price} for feed ${feedId}`,
+                { feedId, price },
+            );
+        }
+        const ratio = confidence / price;
+        if (ratio > maxConfidenceRatio) {
+            throw new LowConfidenceError(feedId, price, confidence, ratio, maxConfidenceRatio);
+        }
+
+        const quote: PriceQuote = {
+            feedId,
+            price,
+            confidence,
+            publishTime,
+            fetchedAt: Date.now(),
+        };
+        this.cache.set(feedId, { price, timestamp: Date.now(), quote });
+        return quote;
+    }
+
+    /**
+     * Strict native-token fetch. Throws on unknown chains instead of returning 0.
+     */
+    async getNativeTokenPriceStrict(
+        chainName: string,
+        options: PriceQuoteOptions = {},
+    ): Promise<PriceQuote> {
+        let feedId = CHAIN_NATIVE_FEED_MAP[chainName];
+        if (chainName === 'starknet' && STARKNET_GAS_TOKEN_IS_ETH) {
+            feedId = PYTH_FEED_IDS.ETH;
+        }
+        if (!feedId) {
+            if (
+                chainName.includes('optimism') ||
+                chainName.includes('arbitrum') ||
+                chainName.includes('base')
+            ) {
+                feedId = PYTH_FEED_IDS.ETH;
+            }
+        }
+        if (!feedId) {
+            throw new OracleError(
+                'ORACLE_UNKNOWN_FEED',
+                `No Pyth feed mapped for chain ${chainName}`,
+                { chainName },
+            );
+        }
+        return this.getPriceStrict(feedId, options);
     }
 
     /**

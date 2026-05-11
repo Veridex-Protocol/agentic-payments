@@ -12,11 +12,37 @@
  * a requested transaction would breach these policies.
  */
 import { StoredSession } from './SessionStorage';
+import {
+  assertQuoteFresh,
+  DEFAULT_MAX_STALE_SECONDS,
+  PriceQuote,
+} from '../oracle/StalePriceError';
+// Re-export for compatibility if any caller imports the constant from here.
+export { DEFAULT_MAX_STALE_SECONDS } from '../oracle/StalePriceError';
 
 export interface LimitCheckResult {
   allowed: boolean;
   reason?: string;
   remainingDailyLimitUSD: number;
+}
+
+/**
+ * Options for the strict USD-derivation path. If the caller must charge a
+ * session for `nativeAmount` units of an asset priced by `quote`, passing
+ * both here lets SpendingTracker (a) revalidate the quote's freshness at the
+ * exact moment of the cap check and (b) compute `amountUSD` deterministically
+ * from integers instead of trusting a pre-computed float.
+ */
+export interface StrictCheckInput {
+  /** Validated price quote for the asset being spent. */
+  quote: PriceQuote;
+  /** Native quantity of the asset (e.g. 1.5 for 1.5 ETH). */
+  nativeAmount: number;
+  /**
+   * Maximum allowed publish-time age at the moment of the check. Defaults to
+   * the oracle module's default (60s). Hard revert if exceeded.
+   */
+  maxStaleSeconds?: number;
 }
 
 export class SpendingTracker {
@@ -90,5 +116,41 @@ export class SpendingTracker {
     session.metadata.totalSpentUSD = (session.metadata.totalSpentUSD ?? 0) + amountUSD;
     session.metadata.lastUsedAt = Date.now();
     session.metadata.transactionCount += 1;
+  }
+
+  /**
+   * Strict cap check that hard-reverts on a stale or missing price quote.
+   *
+   * Use this instead of `checkLimits(session, amountUSD)` on any payment path
+   * that could be attacker-controlled. The legacy entrypoint trusts a raw
+   * `amountUSD` number that a compromised upstream (routing layer, malicious
+   * merchant, oracle fallback returning $1.0 for an unknown token) can lie
+   * about. This method requires a validated `PriceQuote` and revalidates its
+   * freshness at check time.
+   *
+   * Throws `StalePriceError` if the quote has aged past `maxStaleSeconds`.
+   */
+  checkLimitsStrict(session: StoredSession, input: StrictCheckInput): LimitCheckResult {
+    const maxStale = input.maxStaleSeconds ?? DEFAULT_MAX_STALE_SECONDS;
+    // Hard revert on stale quote. Callers cannot silently substitute fallbacks.
+    assertQuoteFresh(input.quote, maxStale);
+
+    if (!Number.isFinite(input.nativeAmount) || input.nativeAmount < 0) {
+      return {
+        allowed: false,
+        reason: `Invalid nativeAmount ${input.nativeAmount}`,
+        remainingDailyLimitUSD: 0,
+      };
+    }
+    if (!Number.isFinite(input.quote.price) || input.quote.price <= 0) {
+      return {
+        allowed: false,
+        reason: `Invalid price ${input.quote.price} for feed ${input.quote.feedId}`,
+        remainingDailyLimitUSD: 0,
+      };
+    }
+
+    const amountUSD = input.nativeAmount * input.quote.price;
+    return this.checkLimits(session, amountUSD);
   }
 }

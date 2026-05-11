@@ -84,6 +84,7 @@ export * from './performance';
 // Oracle
 export * from './oracle/PythOracle';
 export * from './oracle/PythFeeds';
+export * from './oracle/StalePriceError';
 
 // DEX
 export * from './routing/DEXAggregator';

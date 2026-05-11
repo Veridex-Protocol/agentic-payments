@@ -26,15 +26,17 @@ describe('MCPServer (Hardened)', () => {
   });
 
   describe('getTools', () => {
-    it('should return all 5 tools by default', () => {
+    it('should return all 7 tools by default', () => {
       const tools = server.getTools();
-      expect(tools).toHaveLength(5);
+      expect(tools).toHaveLength(7);
       const names = tools.map((t) => t.name);
       expect(names).toContain('veridex_create_session_key');
       expect(names).toContain('veridex_pay');
       expect(names).toContain('veridex_check_balance');
       expect(names).toContain('veridex_revoke_session');
       expect(names).toContain('veridex_get_payment_history');
+      expect(names).toContain('veridex_pause_session');
+      expect(names).toContain('veridex_resume_session');
     });
 
     it('should filter by allowedTools whitelist', () => {
