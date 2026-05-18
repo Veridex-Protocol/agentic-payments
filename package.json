@@ -9,7 +9,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest",
-    "lint": "eslint src/",
+    "lint": "tsc --noEmit",
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
