@@ -10,8 +10,7 @@
  * Handlers are stateless — all mutable state lives in the session or context.
  */
 
-import { StoredSession } from '../../session/SessionStorage';
-import { CostEstimate, PaymentSettlement, ProtocolContext, ProtocolName } from './types';
+import type { CostEstimate, PaymentSettlement, ProtocolContext, ProtocolName } from './types';
 
 export abstract class ProtocolHandler {
   /** Unique protocol identifier */

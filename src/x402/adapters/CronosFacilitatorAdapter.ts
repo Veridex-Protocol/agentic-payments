@@ -1,5 +1,5 @@
 import { Facilitator, CronosNetwork } from '@crypto.com/facilitator-client';
-import { 
+import type { 
   Payment402Request, 
   Payment402Response, 
   PaymentSettlementResponse 

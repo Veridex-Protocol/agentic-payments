@@ -41,7 +41,7 @@
  * const gasCost = await client.estimatePasskeyVerificationGas();
  * ```
  */
-import { EVMClient as CoreEVMClient, EVMClientConfig as CoreEVMClientConfig } from '@veridex/sdk/chains/evm';
+import { EVMClient as CoreEVMClient, type EVMClientConfig as CoreEVMClientConfig } from '@veridex/sdk/chains/evm';
 import { BaseAgentChainClient } from './ChainClient';
 import { ethers } from 'ethers';
 
@@ -137,7 +137,6 @@ export interface ICMSessionInfo {
  * - Avalanche-optimized gas estimation
  */
 export class AvalancheChainClient extends BaseAgentChainClient {
-    private evmCore: CoreEVMClient;
     private provider: ethers.JsonRpcProvider;
     private chainlinkAvaxUsdFeed: string;
     private chainlinkUsdcUsdFeed: string;

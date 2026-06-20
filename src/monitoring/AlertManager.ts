@@ -10,8 +10,8 @@
  * - **Anomaly Detection**: Uses heuristics to detect unusual spending patterns (frequency/amount spikes).
  * - **Webhooks**: Dispatches critical alerts to external systems (Slack, PagerDuty).
  */
-import { SpendingAlert } from '../types/agent';
-import { PaymentRecord } from './AuditLogger';
+import type { SpendingAlert } from '../types/agent';
+import type { PaymentRecord } from './AuditLogger';
 
 // ── Webhook Channel Types ──
 
@@ -302,7 +302,6 @@ export class AlertManager {
                         },
                     },
                 };
-            case 'http':
             default:
                 return {
                     url: channel.url,

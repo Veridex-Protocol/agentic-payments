@@ -147,7 +147,7 @@ export class ProtocolRegistry {
     // Filter by required capabilities
     if (requirements.capabilities?.length) {
       candidates = candidates.filter((c) =>
-        requirements.capabilities!.every((r) => c.capabilities.has(r)),
+        requirements.capabilities?.every((r) => c.capabilities.has(r)),
       );
     }
 

@@ -14,15 +14,13 @@
  */
 
 import {
-  VeridexSDK,
+  type VeridexSDK,
   createSDK,
-  ChainName,
+  type ChainName,
 } from '@veridex/sdk';
-import type { PortfolioBalance, TokenBalance } from '@veridex/sdk';
-import { StoredSession } from '../session/SessionStorage';
+import type { TokenBalance } from '@veridex/sdk';
+import type { StoredSession } from '../session/SessionStorage';
 import { ethers } from 'ethers';
-import { AgentChainClient } from '../chains/ChainClient';
-import { ChainClientFactory } from '../chains/ChainClientFactory';
 
 // Wormhole chain ID to chain name mapping
 const WORMHOLE_ID_TO_CHAIN: Record<number, ChainName> = {
@@ -99,7 +97,6 @@ export interface RouteOptions {
 
 export class CrossChainRouter {
   private sdkCache: Map<number, VeridexSDK> = new Map();
-  private clientCache: Map<number, AgentChainClient> = new Map();
 
   constructor(
     private coreSDK?: VeridexSDK,
@@ -264,7 +261,7 @@ export class CrossChainRouter {
     targetChain: number,
     amount: bigint,
     token: string,
-    options: RouteOptions
+    _options: RouteOptions
   ): Promise<PaymentRoute> {
     // Same chain - direct transfer
     if (sourceChain === targetChain) {
@@ -419,32 +416,6 @@ export class CrossChainRouter {
       return sdk;
     } catch (e) {
       console.warn(`[CrossChainRouter] Failed to create SDK for chain ${chainName}`, e);
-      return null;
-    }
-  }
-
-  /**
-   * Get or create an AgentChainClient for a specific chain.
-   */
-  private async getClientForChain(chainId: number): Promise<AgentChainClient | null> {
-    if (this.clientCache.has(chainId)) {
-      return this.clientCache.get(chainId)!;
-    }
-
-    const chainName = WORMHOLE_ID_TO_CHAIN[chainId];
-    if (!chainName) {
-      return null;
-    }
-
-    try {
-      const client = ChainClientFactory.createClient(
-        chainName,
-        this.testnet ? 'testnet' : 'mainnet'
-      );
-      this.clientCache.set(chainId, client);
-      return client;
-    } catch (e) {
-      console.warn(`[CrossChainRouter] Failed to create client for chain ${chainName}`, e);
       return null;
     }
   }

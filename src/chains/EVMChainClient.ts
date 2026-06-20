@@ -12,9 +12,9 @@
  * - Supports EIP-712 signing for x402 payments.
  * - Integration with Pyth Oracle for pricing.
  */
-import { EVMClient as CoreEVMClient, EVMClientConfig as CoreEVMClientConfig } from '@veridex/sdk/chains/evm';
+import { EVMClient as CoreEVMClient, type EVMClientConfig as CoreEVMClientConfig } from '@veridex/sdk/chains/evm';
 import { BaseAgentChainClient } from './ChainClient';
-import { ethers } from 'ethers';
+import type { ethers } from 'ethers';
 
 /**
  * Agent-specific EVM chain client.

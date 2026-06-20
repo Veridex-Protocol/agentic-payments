@@ -8,7 +8,7 @@
  * this cache provides a TTL-based mechanism (default 10s) to serve recent balance data
  * without hitting the blockchain node repeatedly.
  */
-import { TokenBalance } from '@veridex/sdk';
+import type { TokenBalance } from '@veridex/sdk';
 
 interface CachedBalance {
     tokens: TokenBalance[];

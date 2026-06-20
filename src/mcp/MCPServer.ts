@@ -20,8 +20,8 @@
  * - `veridex_revoke_session`: Revoke agent wallet access.
  * - `veridex_get_payment_history`: Retrieve transaction history.
  */
-import { AgentWallet } from '../AgentWallet';
-import { MCPTool, MCPToolResult } from '../types/mcp';
+import type { AgentWallet } from '../AgentWallet';
+import type { MCPTool, MCPToolResult } from '../types/mcp';
 import { ToolSanitizer } from '../security/ToolSanitizer';
 import { InjectionDetector } from '../security/InjectionDetector';
 import { OutputGuard } from '../security/OutputGuard';

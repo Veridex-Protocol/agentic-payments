@@ -212,7 +212,6 @@ export class ReputationClient {
           }
         }
       } catch {
-        continue; // Client has no feedback
       }
     }
 

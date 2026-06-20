@@ -16,7 +16,6 @@ import { ethers } from 'ethers';
 import type {
   VeridexTracePayload,
   TraceResult,
-  ToolCallRecord,
   ReasoningContext,
   TraceStorageAdapter,
   StorageReceipt,

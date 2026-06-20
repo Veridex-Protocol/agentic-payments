@@ -31,18 +31,11 @@ import {
   getERC8004Addresses,
   ERC8004_TESTNET_IDENTITY,
   ERC8004_TESTNET_REPUTATION,
-  ERC8004_MAINNET_IDENTITY,
-  ERC8004_MAINNET_REPUTATION,
 } from './constants';
 import type {
-  AgentRegistration,
-  FeedbackSummary,
-  FeedbackOptions,
   ServiceRegistration,
   ServiceInfo,
   ERC8004Config,
-  RegisterAgentOptions,
-  AgentRegistrationFile,
 } from './types';
 
 // Re-export canonical addresses for backward compatibility
@@ -255,17 +248,17 @@ export class ERC8004Client {
 
   async registerService(params: ServiceRegistration): Promise<ethers.TransactionReceipt> {
     this.requireServiceDirectory();
-    return this.serviceDirectory!.registerService(params);
+    return this.serviceDirectory?.registerService(params);
   }
 
   async deactivateService(agentId: bigint, serviceIndex: bigint): Promise<ethers.TransactionReceipt> {
     this.requireServiceDirectory();
-    return this.serviceDirectory!.deactivateService(agentId, serviceIndex);
+    return this.serviceDirectory?.deactivateService(agentId, serviceIndex);
   }
 
   async activateService(agentId: bigint, serviceIndex: bigint): Promise<ethers.TransactionReceipt> {
     this.requireServiceDirectory();
-    return this.serviceDirectory!.activateService(agentId, serviceIndex);
+    return this.serviceDirectory?.activateService(agentId, serviceIndex);
   }
 
   async updateService(
@@ -274,7 +267,7 @@ export class ERC8004Client {
     params: Partial<Pick<ServiceRegistration, 'endpointUrl' | 'description' | 'pricePerCall' | 'paymentToken'>>,
   ): Promise<ethers.TransactionReceipt> {
     this.requireServiceDirectory();
-    return this.serviceDirectory!.updateService(agentId, serviceIndex, params);
+    return this.serviceDirectory?.updateService(agentId, serviceIndex, params);
   }
 
   // ==========================================================================
@@ -283,22 +276,22 @@ export class ERC8004Client {
 
   async discoverServices(category: string): Promise<ServiceInfo[]> {
     this.requireServiceDirectory();
-    return this.serviceDirectory!.discoverServices(category);
+    return this.serviceDirectory?.discoverServices(category);
   }
 
   async getActiveServices(): Promise<ServiceInfo[]> {
     this.requireServiceDirectory();
-    return this.serviceDirectory!.getActiveServices();
+    return this.serviceDirectory?.getActiveServices();
   }
 
   async getServicesByAgent(agentId: bigint): Promise<ServiceInfo[]> {
     this.requireServiceDirectory();
-    return this.serviceDirectory!.getServicesByAgent(agentId);
+    return this.serviceDirectory?.getServicesByAgent(agentId);
   }
 
   async getService(serviceId: bigint): Promise<ServiceInfo> {
     this.requireServiceDirectory();
-    return this.serviceDirectory!.getService(serviceId);
+    return this.serviceDirectory?.getService(serviceId);
   }
 
   // ==========================================================================

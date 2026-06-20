@@ -14,16 +14,16 @@
  */
 
 import { ethers } from 'ethers';
-import {
+import type {
   Payment402Request,
   Payment402Response,
   PaymentPayload,
   ERC3009Authorization,
 } from '../types/x402';
-import { StoredSession } from '../session/SessionStorage';
+import type { StoredSession } from '../session/SessionStorage';
 
 // ERC-3009 type hash for transferWithAuthorization
-const TRANSFER_WITH_AUTHORIZATION_TYPEHASH = ethers.keccak256(
+const _TRANSFER_WITH_AUTHORIZATION_TYPEHASH = ethers.keccak256(
   ethers.toUtf8Bytes(
     'TransferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)'
   )

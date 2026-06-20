@@ -207,14 +207,14 @@ function resolveConfig(config: PaywallConfig): Required<Pick<PaywallConfig, 'net
 function toRawAmount(amount: string, rawAmount?: boolean): string {
   if (rawAmount) return amount;
   const parsed = parseFloat(amount);
-  if (isNaN(parsed)) return amount;
+  if (Number.isNaN(parsed)) return amount;
   return String(Math.round(parsed * 1_000_000));
 }
 
 /** Convert raw token units back to human-readable */
 function toHumanAmount(rawAmount: string): string {
   const parsed = parseInt(rawAmount, 10);
-  if (isNaN(parsed)) return rawAmount;
+  if (Number.isNaN(parsed)) return rawAmount;
   return (parsed / 1_000_000).toFixed(6).replace(/\.?0+$/, '');
 }
 

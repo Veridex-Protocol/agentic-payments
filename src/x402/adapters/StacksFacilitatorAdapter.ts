@@ -15,7 +15,7 @@
  * The adapter wraps the x402-stacks npm package and integrates it with
  * Veridex's spending limit enforcement and audit logging.
  */
-import {
+import type {
     Payment402Request,
     Payment402Response,
     PaymentSettlementResponse,

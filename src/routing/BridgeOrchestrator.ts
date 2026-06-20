@@ -11,8 +11,7 @@
  * - Sequence tracking.
  */
 export class BridgeOrchestrator {
-  async executeBridge(sourceChain: number, targetChain: number, amount: bigint): Promise<void> {
-    console.log(`Bridging ${amount} from ${sourceChain} to ${targetChain} via Wormhole...`);
+  async executeBridge(_sourceChain: number, _targetChain: number, _amount: bigint): Promise<void> {
     // Implement bridge logic using @veridex/sdk and Wormhole
   }
 }

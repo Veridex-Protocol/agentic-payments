@@ -4,7 +4,6 @@
  * Traces are lost when the process exits.
  */
 
-import { ethers } from 'ethers';
 import type { TraceStorageAdapter, VeridexTracePayload, StorageReceipt } from '../types';
 
 export class MemoryStorage implements TraceStorageAdapter {

@@ -267,11 +267,11 @@ export class RegistrationFileManager {
   // ==========================================================================
 
   private async pinToPinata(json: string): Promise<string> {
-    const res = await fetch(`${this.ipfsConfig!.gateway}/pinning/pinJSONToIPFS`, {
+    const res = await fetch(`${this.ipfsConfig?.gateway}/pinning/pinJSONToIPFS`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.ipfsConfig!.apiKey}`,
+        'Authorization': `Bearer ${this.ipfsConfig?.apiKey}`,
       },
       body: JSON.stringify({
         pinataContent: JSON.parse(json),
@@ -288,10 +288,10 @@ export class RegistrationFileManager {
   }
 
   private async pinToWeb3Storage(json: string): Promise<string> {
-    const res = await fetch(`${this.ipfsConfig!.gateway}/upload`, {
+    const res = await fetch(`${this.ipfsConfig?.gateway}/upload`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.ipfsConfig!.apiKey}`,
+        'Authorization': `Bearer ${this.ipfsConfig?.apiKey}`,
         'Content-Type': 'application/json',
       },
       body: json,

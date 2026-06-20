@@ -15,14 +15,14 @@
  */
 
 import { ProtocolHandler } from '../base/ProtocolHandler';
-import { CostEstimate, PaymentSettlement, ProtocolContext, ProtocolName } from '../base/types';
+import type { CostEstimate, ProtocolContext, ProtocolName } from '../base/types';
 import { PaymentParser } from '../../x402/PaymentParser';
 import { PaymentSigner } from '../../x402/PaymentSigner';
 import { AgentPaymentError, AgentPaymentErrorCode } from '../../types/errors';
 
 const HEADER_PAYMENT_REQUIRED = 'payment-required';
 const HEADER_PAYMENT_SIGNATURE = 'PAYMENT-SIGNATURE';
-const HEADER_PAYMENT_RESPONSE = 'payment-response';
+const _HEADER_PAYMENT_RESPONSE = 'payment-response';
 
 export class X402Handler extends ProtocolHandler {
   readonly protocolName: ProtocolName = 'x402';

@@ -13,9 +13,9 @@
  * - Manages nonce abstraction for Starknet accounts.
  * - Interfaces with Starknet RPC providers.
  */
-import { StarknetClient as CoreStarknetClient, StarknetClientConfig as CoreStarknetClientConfig } from '@veridex/sdk/chains/starknet';
+import { StarknetClient as CoreStarknetClient, type StarknetClientConfig as CoreStarknetClientConfig } from '@veridex/sdk/chains/starknet';
 import { BaseAgentChainClient } from './ChainClient';
-import { RpcProvider } from 'starknet';
+import type { RpcProvider } from 'starknet';
 
 /**
  * Agent-specific Starknet chain client.

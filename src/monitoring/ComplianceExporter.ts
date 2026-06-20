@@ -8,11 +8,11 @@
  * - **JSON**: For machine ingestion.
  * - **CSV**: For spreadsheet analysis and reporting.
  */
-import { PaymentRecord } from './AuditLogger';
+import type { PaymentRecord } from './AuditLogger';
 
 export class ComplianceExporter {
     exportToJSON(records: PaymentRecord[]): string {
-        return JSON.stringify(records, (key, value) =>
+        return JSON.stringify(records, (_key, value) =>
             typeof value === 'bigint' ? value.toString() : value,
             2);
     }

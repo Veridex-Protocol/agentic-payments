@@ -12,7 +12,7 @@
  * 
  * This closes the trust loop: hire agent → pay → rate → reputation grows.
  */
-import { ERC8004Client, type FeedbackParams } from './ERC8004Client';
+import type { ERC8004Client, FeedbackParams } from './ERC8004Client';
 
 // ============================================================================
 // Types
@@ -99,10 +99,6 @@ export class ReputationPipeline {
 
     try {
       await this.erc8004.giveFeedback(params);
-      console.log(
-        `[ReputationPipeline] Feedback submitted for agent #${metrics.agentId}: ` +
-        `score=${score}, latency=${metrics.latencyMs}ms, success=${metrics.success}`
-      );
     } catch (error: any) {
       // Non-blocking: testnet registries may not accept feedback
       console.warn(

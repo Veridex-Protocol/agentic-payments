@@ -204,7 +204,7 @@ export class DEXAggregator {
 
         // Priority: USDC (for CCTP) > Native > Others
         const isUSDCSource = this.isUSDC(sourceChain, sourceToken);
-        const isUSDCTarget = this.isUSDC(targetChain, targetToken);
+        const _isUSDCTarget = this.isUSDC(targetChain, targetToken);
 
         // Default to USDC-First approach if available on that chain
         let bridgeTokenSymbol = 'USDC';
@@ -301,16 +301,16 @@ export class DEXAggregator {
      */
     async executeSwap(
         quote: SwapQuote,
-        signer: { signTransaction: (tx: unknown) => Promise<string> }
+        _signer: { signTransaction: (tx: unknown) => Promise<string> }
     ): Promise<SwapResult> {
         if (Date.now() > quote.expiresAt) {
             throw new Error('Quote expired');
         }
 
         // Simulated result
-        const txHash = '0x' + Array.from({ length: 64 }, () =>
+        const txHash = `0x${Array.from({ length: 64 }, () =>
             Math.floor(Math.random() * 16).toString(16)
-        ).join('');
+        ).join('')}`;
 
         return {
             txHash,
@@ -414,7 +414,7 @@ export class DEXAggregator {
             estimatedGasUSD,
             route: [{
                 protocol,
-                poolAddress: '0x' + '0'.repeat(40),
+                poolAddress: `0x${'0'.repeat(40)}`,
                 fromToken: from,
                 toToken: to,
                 fee: 3000
@@ -423,12 +423,12 @@ export class DEXAggregator {
         };
     }
 
-    private estimateBridgeCost(protocol: string, source: number, dest: number): number {
+    private estimateBridgeCost(protocol: string, _source: number, _dest: number): number {
         if (protocol === 'cctp') return 0.2; // CCTP is cheap
         return 1.5; // Wormhole Standard
     }
 
-    private estimateBridgeTime(protocol: string, source: number, dest: number): number {
+    private estimateBridgeTime(protocol: string, _source: number, _dest: number): number {
         if (protocol === 'cctp') return 600; // ~10-20 mins
         return 120; // Wormhole Standard
     }

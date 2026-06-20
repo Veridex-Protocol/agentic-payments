@@ -11,11 +11,11 @@
  * It manages the state updates for `dailySpentUSD` and strictly returns `false` if
  * a requested transaction would breach these policies.
  */
-import { StoredSession } from './SessionStorage';
+import type { StoredSession } from './SessionStorage';
 import {
   assertQuoteFresh,
   DEFAULT_MAX_STALE_SECONDS,
-  PriceQuote,
+  type PriceQuote,
 } from '../oracle/StalePriceError';
 // Re-export for compatibility if any caller imports the constant from here.
 export { DEFAULT_MAX_STALE_SECONDS } from '../oracle/StalePriceError';

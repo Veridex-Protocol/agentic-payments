@@ -15,7 +15,7 @@
  * - Recipient
  * - Session ID
  */
-import { PaymentReceipt, HistoryOptions } from '../types/agent';
+import type { PaymentReceipt, HistoryOptions } from '../types/agent';
 
 export interface PaymentRecord extends PaymentReceipt {
   id: string;
@@ -35,11 +35,6 @@ export class AuditLogger {
 
     this.inMemoryLogs.push(record);
     this.persistLogs();
-
-    // Original console log
-    console.log('AUDIT:', JSON.stringify(record, (key, value) =>
-      typeof value === 'bigint' ? value.toString() : value
-    ));
   }
 
   async getLogs(options: HistoryOptions = {}): Promise<PaymentRecord[]> {

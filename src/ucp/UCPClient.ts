@@ -12,8 +12,8 @@
  * 5. Completing the checkout.
  */
 import { ethers } from 'ethers';
-import { StoredSession } from '../session/SessionStorage';
-import { VeridexSDK } from '@veridex/sdk';
+import type { StoredSession } from '../session/SessionStorage';
+import type { VeridexSDK } from '@veridex/sdk';
 import axios from 'axios';
 
 // Interfaces for UCP interaction
@@ -35,7 +35,7 @@ interface UCPCheckoutResponse {
 }
 
 export class UCPClient {
-    constructor(private coreSDK: VeridexSDK) { }
+    constructor(_coreSDK: VeridexSDK) { }
 
     /**
      * Initiates the UCP flow starting from a checkout URL found in a 402 response.
@@ -43,7 +43,7 @@ export class UCPClient {
     async initiateCheckoutFlow(
         checkoutUrl: string,
         session: StoredSession,
-        originalRequestOptions: RequestInit
+        _originalRequestOptions: RequestInit
     ): Promise<any> { // Returns the credential to include in the retry
 
         // 1. Create Checkout

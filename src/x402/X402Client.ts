@@ -24,11 +24,11 @@ import { PaymentParser } from './PaymentParser';
 import { PaymentSigner } from './PaymentSigner';
 import { NonceManager } from './NonceManager';
 import { CronosFacilitatorAdapter } from './adapters/CronosFacilitatorAdapter';
-import { SessionKeyManager } from '../session/SessionKeyManager';
-import { VeridexSDK } from '@veridex/sdk';
-import { StoredSession } from '../session/SessionStorage';
+import type { SessionKeyManager } from '../session/SessionKeyManager';
+import type { VeridexSDK } from '@veridex/sdk';
+import type { StoredSession } from '../session/SessionStorage';
 import { UCPClient } from '../ucp/UCPClient';
-import {
+import type {
   Payment402Request,
   Payment402Response,
   PaymentSettlementResponse,
@@ -53,7 +53,6 @@ const DEFAULT_CONFIG: Required<X402ClientConfig> = {
 export class X402Client {
   private parser: PaymentParser;
   private signer: PaymentSigner;
-  private nonceManager: NonceManager;
   private ucpClient: UCPClient;
   private cronosAdapter?: CronosFacilitatorAdapter;
   private config: Required<X402ClientConfig>;
@@ -163,9 +162,6 @@ export class X402Client {
     // Record spending BEFORE making the payment
     // This prevents double-spending if the retry succeeds
     await this.sessionManager.recordSpending(session, amountUSD);
-
-    // Retry request with payment proof
-    try {
       const response = await this.retryWithPayment(url, options, paymentResponse.paymentPayload);
 
       // Parse settlement response if present
@@ -178,11 +174,6 @@ export class X402Client {
       }
 
       return response;
-    } catch (error) {
-      // If payment failed, we should ideally refund the spending record
-      // But for safety, we leave it recorded (conservative approach)
-      throw error;
-    }
   }
 
   /**
@@ -201,7 +192,7 @@ export class X402Client {
       // UCP checkout completed, retry the original request
       // The server should now recognize the satisfied payment
       return await this.performFetch(originalUrl, originalOptions);
-    } catch (error: any) {
+    } catch (_error: any) {
       // VDX-PAY-018: Generic error message to avoid leaking session/payment internals
       throw new AgentPaymentError(
         AgentPaymentErrorCode.UCP_NEGOTIATION_FAILED,
@@ -312,7 +303,7 @@ export class X402Client {
   private estimateUSDValue(request: Payment402Request): number {
     const amount = parseFloat(request.amount);
 
-    if (!isFinite(amount) || amount <= 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       throw new AgentPaymentError(
         AgentPaymentErrorCode.PAYMENT_FAILED,
         'Invalid payment amount: cannot estimate USD value',

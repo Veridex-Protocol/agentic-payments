@@ -4,7 +4,6 @@
  * Uses raw SQL via a configurable query executor — no ORM dependency.
  */
 
-import { ethers } from 'ethers';
 import type { TraceStorageAdapter, VeridexTracePayload, StorageReceipt } from '../types';
 
 /** A minimal query interface — compatible with pg, postgres.js, drizzle, etc. */

@@ -17,8 +17,8 @@
  * - ADR-0029 §Trust-Gated Fetch
  * - ERC8004_IMPLEMENTATION_PLAN.md Phase 2 TrustGate
  */
-import { ReputationClient } from './ReputationClient';
-import { IdentityClient } from './IdentityClient';
+import type { ReputationClient } from './ReputationClient';
+import type { IdentityClient } from './IdentityClient';
 import type {
   TrustGateConfig,
   TrustCheckResult,

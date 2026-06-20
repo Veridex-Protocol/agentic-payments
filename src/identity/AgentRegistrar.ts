@@ -19,7 +19,6 @@ import {
   ERC8004Client,
   type AgentMetadata,
   type ServiceRegistration,
-  type ERC8004ClientConfig,
 } from './ERC8004Client';
 
 // ============================================================================
@@ -111,18 +110,12 @@ export class AgentRegistrar {
     service?: Omit<ServiceRegistration, 'agentId'>,
     visibility: AgentVisibility = 'public',
   ): Promise<RegistrationResult> {
-    console.log(`[AgentRegistrar] Starting registration for "${metadata.name}"...`);
-
-    // Step 1: Mint ERC-8004 identity
-    console.log('[AgentRegistrar] Step 1/4: Minting ERC-8004 identity...');
     const agentId = await this.erc8004.registerAgent(metadata);
     this.agentId = agentId;
-    console.log(`[AgentRegistrar] Identity minted: ERC-8004 #${agentId}`);
 
     // Step 2: Register service (optional)
     let serviceId: bigint | undefined;
     if (service) {
-      console.log('[AgentRegistrar] Step 2/4: Registering service on ServiceDirectory...');
       try {
         await this.erc8004.registerService({
           ...service,
@@ -130,21 +123,13 @@ export class AgentRegistrar {
         });
         const services = await this.erc8004.getServicesByAgent(agentId);
         serviceId = services.length > 0 ? services[services.length - 1].serviceId : undefined;
-        console.log(`[AgentRegistrar] Service registered: #${serviceId}`);
       } catch (error: any) {
         console.warn(`[AgentRegistrar] Service registration failed (non-blocking): ${error.message}`);
       }
     } else {
-      console.log('[AgentRegistrar] Step 2/4: Skipped (no service params)');
     }
-
-    // Step 3: Connect to gateway
-    console.log('[AgentRegistrar] Step 3/4: Connecting to gateway...');
     const gatewayId = await this.connectToGateway(metadata);
     this.gatewayId = gatewayId;
-
-    // Step 4: Set visibility
-    console.log(`[AgentRegistrar] Step 4/4: Setting visibility to "${visibility}"...`);
     this.setVisibility(visibility);
 
     const result: RegistrationResult = {
@@ -156,14 +141,7 @@ export class AgentRegistrar {
       gatewayId: gatewayId || undefined,
       inviteCode: this.inviteCode || undefined,
     };
-
-    console.log(`[AgentRegistrar] Registration complete!`);
-    console.log(`  Agent ID:    ERC-8004 #${agentId}`);
-    console.log(`  Owner:       ${this.signer.address}`);
-    console.log(`  Gateway ID:  ${gatewayId || 'not connected'}`);
-    console.log(`  Visibility:  ${visibility}`);
     if (this.inviteCode) {
-      console.log(`  Invite Code: ${this.inviteCode}`);
     }
 
     return result;

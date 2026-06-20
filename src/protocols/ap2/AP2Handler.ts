@@ -16,7 +16,7 @@
  */
 
 import { ProtocolHandler } from '../base/ProtocolHandler';
-import { CostEstimate, ProtocolContext, ProtocolName } from '../base/types';
+import type { CostEstimate, ProtocolContext, ProtocolName } from '../base/types';
 import { AgentPaymentError, AgentPaymentErrorCode } from '../../types/errors';
 import { ethers } from 'ethers';
 

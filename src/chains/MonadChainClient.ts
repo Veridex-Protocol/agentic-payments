@@ -10,7 +10,7 @@
  * - Agent marketplace integration
  * - EIP-7951 P256 precompile support (native passkey verification)
  */
-import { EVMClient as CoreEVMClient, EVMClientConfig as CoreEVMClientConfig } from '@veridex/sdk/chains/evm';
+import { EVMClient as CoreEVMClient, type EVMClientConfig as CoreEVMClientConfig } from '@veridex/sdk/chains/evm';
 import { BaseAgentChainClient } from './ChainClient';
 import { ethers } from 'ethers';
 
@@ -103,7 +103,6 @@ export interface MonadChainClientConfig extends CoreEVMClientConfig {
  * ```
  */
 export class MonadChainClient extends BaseAgentChainClient {
-    private evmCore: CoreEVMClient;
     private provider: ethers.JsonRpcProvider;
     private serviceDirectoryAddress: string;
     private identityRegistryAddress: string;

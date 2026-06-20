@@ -35,7 +35,7 @@ export class IPFSStorage implements TraceStorageAdapter {
 
     const headers: Record<string, string> = {};
     if (this.authHeader) {
-      headers['Authorization'] = this.authHeader;
+      headers.Authorization = this.authHeader;
     }
 
     const response = await fetch(`${this.apiUrl}/api/v0/add?pin=true`, {

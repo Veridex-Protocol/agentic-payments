@@ -25,20 +25,20 @@
  * await agent.fetch('https://paid-resource.com');
  * ```
  */
-import { VeridexSDK, TokenBalance, PortfolioBalance, createSDK, ChainName, PasskeyCredential, getEffectivePrimaryHub } from '@veridex/sdk';
-import { AgentWalletConfig, PaymentParams, PaymentReceipt, SessionStatus, HistoryOptions } from './types/agent';
+import { type VeridexSDK, type TokenBalance, type PortfolioBalance, createSDK, getEffectivePrimaryHub } from '@veridex/sdk';
+import type { AgentWalletConfig, PaymentParams, PaymentReceipt, SessionStatus, HistoryOptions } from './types/agent';
 import { SessionKeyManager } from './session/SessionKeyManager';
-import { SessionKeyConfig, StoredSession } from './session/SessionStorage';
+import type { SessionKeyConfig, StoredSession } from './session/SessionStorage';
 import { X402Client } from './x402/X402Client';
 import { UCPCredentialProvider } from './ucp/CredentialProvider';
 import { MCPServer } from './mcp/MCPServer';
 import { CrossChainRouter } from './routing/CrossChainRouter';
-import { AuditLogger, PaymentRecord } from './monitoring/AuditLogger';
+import { AuditLogger, type PaymentRecord } from './monitoring/AuditLogger';
 import { AlertManager } from './monitoring/AlertManager';
 import { ComplianceExporter } from './monitoring/ComplianceExporter';
 import { BalanceCache } from './monitoring/BalanceCache';
 import { AgentPaymentError, AgentPaymentErrorCode } from './types/errors';
-import { SpendingAlert } from './types/agent';
+import type { SpendingAlert } from './types/agent';
 import { ethers } from 'ethers';
 import { ProtocolDetector } from './protocols/base/ProtocolDetector';
 import { X402Handler } from './protocols/x402/X402Handler';
@@ -46,9 +46,9 @@ import { UCPHandler } from './protocols/ucp/UCPHandler';
 import { ACPHandler } from './protocols/acp/ACPHandler';
 import { AP2Handler } from './protocols/ap2/AP2Handler';
 import { MPPHandler } from './protocols/mpp/MPPHandler';
-import { UniversalFetchOptions, ProtocolContext, ProtocolName, CostEstimate, DetectionResult } from './protocols/base/types';
+import type { UniversalFetchOptions, ProtocolContext, CostEstimate, } from './protocols/base/types';
 import { PolicyEngine } from './policy/PolicyEngine';
-import type { Mandate, ProposedAction, EvaluationContext, VerdictResult } from './policy/types';
+import type { ProposedAction, EvaluationContext, VerdictResult } from './policy/types';
 import { AssetWhitelistRule } from './policy/rules/AssetWhitelistRule';
 import { ChainWhitelistRule } from './policy/rules/ChainWhitelistRule';
 import { ProtocolWhitelistRule } from './policy/rules/ProtocolWhitelistRule';
@@ -59,14 +59,13 @@ import { VelocityRule } from './policy/rules/VelocityRule';
 import { HumanApprovalRule } from './policy/rules/HumanApprovalRule';
 import { TraceInterceptor } from './trace/TraceInterceptor';
 import { EvidenceBundle } from './trace/EvidenceBundle';
-import type { TraceStorageAdapter, TraceResult, DisputeBundle as TracDisputeBundle } from './trace/types';
+import type { TraceResult, } from './trace/types';
 import { EscalationManager } from './escalation/EscalationManager';
 import { CircuitBreaker } from './escalation/CircuitBreaker';
 import { IdentityClient } from './identity/IdentityClient';
 import { ReputationClient } from './identity/ReputationClient';
 import { TrustGate } from './identity/TrustGate';
 import { AgentDiscovery } from './identity/AgentDiscovery';
-import { RegistrationFileManager } from './identity/RegistrationFileManager';
 import type {
   AgentRegistration,
   RegisterAgentOptions,
@@ -81,9 +80,7 @@ import type {
 export class AgentWallet {
   private sessionManager: SessionKeyManager;
   private x402Client: X402Client;
-  private ucpProvider: UCPCredentialProvider;
   private mcpServer?: MCPServer;
-  private router: CrossChainRouter;
   private auditLogger: AuditLogger;
   private alertManager: AlertManager;
   private complianceExporter: ComplianceExporter;
@@ -105,7 +102,6 @@ export class AgentWallet {
   private policyEngine?: PolicyEngine;
   private _lastVerdict?: VerdictResult;
   private traceInterceptor?: TraceInterceptor;
-  private evidenceBundle?: EvidenceBundle;
   private _lastTrace?: TraceResult;
   private escalationManager?: EscalationManager;
   private circuitBreaker?: CircuitBreaker;
@@ -522,7 +518,7 @@ export class AgentWallet {
         // Capture trace if TraceInterceptor is configured
         if (this.traceInterceptor) {
           const traceResult = await this.traceInterceptor.capture({
-            sessionKeyHash: this.currentSession!.keyHash,
+            sessionKeyHash: this.currentSession?.keyHash,
             reasoning: { toolCalls: [] },
             proposedAction,
             policyEvaluation: verdict,
@@ -551,9 +547,9 @@ export class AgentWallet {
         if (estimate.amountUSD > 0) {
           await this.sessionManager.recordSpending(this.currentSession!, estimate.amountUSD);
           this.alertManager.checkSpending(
-            this.currentSession!.keyHash,
-            this.currentSession!.metadata.dailySpentUSD,
-            this.currentSession!.config.dailyLimitUSD
+            this.currentSession?.keyHash,
+            this.currentSession?.metadata.dailySpentUSD,
+            this.currentSession?.config.dailyLimitUSD
           );
         }
       } catch {
@@ -682,7 +678,7 @@ export class AgentWallet {
     // Get signer from session (handles encryption properly)
     const signer = await this.sessionManager.getSessionWallet(
       this.currentSession!,
-      this.currentSession!.masterKeyHash || this.config.masterCredential.credentialId
+      this.currentSession?.masterKeyHash || this.config.masterCredential.credentialId
     );
 
     // Pre-execution simulation — dry-run the tx via eth_call to catch reverts
@@ -732,22 +728,22 @@ export class AgentWallet {
         chain: params.chain ?? 30,
         timestamp: Date.now(),
       };
-      this.anomalyDetector.observe(this.currentSession!.keyHash, observation);
-      const fpScore = this.anomalyDetector.score(this.currentSession!.keyHash, observation);
+      this.anomalyDetector.observe(this.currentSession?.keyHash, observation);
+      const fpScore = this.anomalyDetector.score(this.currentSession?.keyHash, observation);
       if (fpScore.suspicious) {
         this.alertManager.checkSpending(
-          this.currentSession!.keyHash,
-          this.currentSession!.metadata.dailySpentUSD,
-          this.currentSession!.config.dailyLimitUSD
+          this.currentSession?.keyHash,
+          this.currentSession?.metadata.dailySpentUSD,
+          this.currentSession?.config.dailyLimitUSD
         );
       }
     }
 
     // Check for alerts
     this.alertManager.checkSpending(
-      this.currentSession!.keyHash,
-      this.currentSession!.metadata.dailySpentUSD,
-      this.currentSession!.config.dailyLimitUSD
+      this.currentSession?.keyHash,
+      this.currentSession?.metadata.dailySpentUSD,
+      this.currentSession?.config.dailyLimitUSD
     );
 
     const paymentReceipt: PaymentReceipt = {
@@ -761,7 +757,7 @@ export class AgentWallet {
       timestamp: Date.now()
     };
 
-    await this.auditLogger.log(paymentReceipt, this.currentSession!.keyHash);
+    await this.auditLogger.log(paymentReceipt, this.currentSession?.keyHash);
     return paymentReceipt;
   }
 
@@ -907,7 +903,6 @@ export class AgentWallet {
 
     // Set as current
     this.currentSession = sessionData;
-    console.log(`[AgentWallet] Imported session ${sessionData.keyHash} for master ${sessionData.masterKeyHash}`);
   }
 
   // Audit and monitoring
@@ -940,7 +935,7 @@ export class AgentWallet {
    */
   async register(options: RegisterAgentOptions): Promise<{ agentId: bigint; agentURI: string }> {
     this.requireERC8004();
-    const result = await this.identityClient!.registerWithFile(options);
+    const result = await this.identityClient?.registerWithFile(options);
     this._agentId = result.agentId;
     return result;
   }
@@ -953,7 +948,7 @@ export class AgentWallet {
     this.requireERC8004();
     if (!this._agentId) return null;
     try {
-      return await this.identityClient!.getAgent(this._agentId);
+      return await this.identityClient?.getAgent(this._agentId);
     } catch {
       return null;
     }
@@ -974,7 +969,7 @@ export class AgentWallet {
    */
   async submitFeedback(agentId: bigint, options: FeedbackOptions): Promise<void> {
     this.requireERC8004();
-    const tx = await this.reputationClient!.giveFeedback(agentId, options);
+    const tx = await this.reputationClient?.giveFeedback(agentId, options);
     await tx.wait();
   }
 
@@ -986,7 +981,7 @@ export class AgentWallet {
    */
   async getReputation(agentId: bigint, trustedReviewers?: string[]): Promise<FeedbackSummary> {
     this.requireERC8004();
-    return this.reputationClient!.getSummary(agentId, trustedReviewers || []);
+    return this.reputationClient?.getSummary(agentId, trustedReviewers || []);
   }
 
   /**
@@ -994,7 +989,7 @@ export class AgentWallet {
    */
   async getReputationScore(agentId: bigint, trustedReviewers?: string[]): Promise<number> {
     this.requireERC8004();
-    return this.reputationClient!.getReputationScore(agentId, trustedReviewers);
+    return this.reputationClient?.getReputationScore(agentId, trustedReviewers);
   }
 
   /**
@@ -1002,7 +997,7 @@ export class AgentWallet {
    */
   async discover(query: DiscoveryQuery): Promise<AgentRegistration[]> {
     this.requireERC8004();
-    return this.agentDiscovery!.search(query);
+    return this.agentDiscovery?.search(query);
   }
 
   /**
@@ -1010,7 +1005,7 @@ export class AgentWallet {
    */
   async resolveAgent(input: string): Promise<ResolvedAgent | null> {
     this.requireERC8004();
-    return this.agentDiscovery!.resolve(input);
+    return this.agentDiscovery?.resolve(input);
   }
 
   /**
@@ -1204,7 +1199,7 @@ export class AgentWallet {
         }
 
         if (attempt < maxRetries) {
-          const delay = Math.pow(2, attempt) * 1000;
+          const delay = 2 ** attempt * 1000;
           console.warn(`[AgentWallet] Attempt ${attempt + 1} failed. Retrying in ${delay}ms...`);
           await new Promise(r => setTimeout(r, delay));
         }

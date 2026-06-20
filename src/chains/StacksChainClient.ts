@@ -14,7 +14,7 @@
  * - Protocol-level Post-Conditions for spending safety
  * - Sponsored transactions for gasless agent operations
  */
-import { StacksClient, StacksClientConfig } from '@veridex/sdk/chains/stacks';
+import { StacksClient, type StacksClientConfig } from '@veridex/sdk/chains/stacks';
 import { BaseAgentChainClient } from './ChainClient';
 import { PythOracle } from '../oracle/PythOracle';
 

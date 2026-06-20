@@ -315,7 +315,7 @@ export class InjectionDetector implements PolicyRule {
           matches.push({
             category: 'encoding_attack',
             pattern: `Base64-encoded injection (decoded: ${innerResult.pattern})`,
-            match: match[0].substring(0, 40) + '...',
+            match: `${match[0].substring(0, 40)}...`,
             position: match.index,
             severity: 'critical',
           });

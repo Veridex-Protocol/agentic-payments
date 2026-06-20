@@ -11,8 +11,8 @@
  * - Prevent "socket hang up" errors under load.
  */
 
-import https from 'https';
-import http from 'http';
+import https from 'node:https';
+import http from 'node:http';
 
 export interface PoolConfig {
     /** Maximum sockets per host (default: 10) */

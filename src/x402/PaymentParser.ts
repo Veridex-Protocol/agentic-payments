@@ -14,11 +14,10 @@
  * - Amount normalization (human-readable to BigInt).
  */
 
-import {
+import type {
   PaymentRequiredResponse,
   PaymentRequirement,
   Payment402Request,
-  X402Scheme,
 } from '../types/x402';
 
 // Network to Wormhole Chain ID mapping
@@ -158,7 +157,7 @@ export class PaymentParser {
 
     // Handle numeric network IDs (EVM chain IDs or Wormhole IDs)
     const numericId = parseInt(network, 10);
-    if (!isNaN(numericId)) {
+    if (!Number.isNaN(numericId)) {
       // Map common EVM chain IDs to Wormhole chain IDs
       const evmToWormhole: Record<number, number> = {
         1: 2,        // Ethereum Mainnet

@@ -123,7 +123,7 @@ export class SettlementVerifier {
 
   private parseChainId(network: string): number {
     const parsed = parseInt(network, 10);
-    return isNaN(parsed) ? 0 : parsed;
+    return Number.isNaN(parsed) ? 0 : parsed;
   }
 }
 
@@ -221,6 +221,6 @@ export class EVMSettlementStrategy implements SettlementVerificationStrategy {
 
   private parseChainId(network: string): number {
     const parsed = parseInt(network, 10);
-    return isNaN(parsed) ? 0 : parsed;
+    return Number.isNaN(parsed) ? 0 : parsed;
   }
 }

@@ -12,7 +12,7 @@
  * - Caching and TTL management.
  * - Token revocation.
  */
-import { StoredSession } from '../session/SessionStorage';
+import type { StoredSession } from '../session/SessionStorage';
 import { ethers } from 'ethers';
 
 export interface PaymentToken {

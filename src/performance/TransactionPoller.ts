@@ -63,7 +63,7 @@ export class TransactionPoller {
             if (!this.callbacks.has(txHash)) {
                 this.callbacks.set(txHash, []);
             }
-            this.callbacks.get(txHash)!.push(callback);
+            this.callbacks.get(txHash)?.push(callback);
         }
 
         this.startPolling();

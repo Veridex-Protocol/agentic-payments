@@ -11,7 +11,7 @@
  * - Handles SPL Token transfers.
  * - Integrates with Wormhole for cross-chain messages.
  */
-import { SolanaClient as CoreSolanaClient, SolanaClientConfig as CoreSolanaClientConfig } from '@veridex/sdk/chains/solana';
+import { SolanaClient as CoreSolanaClient, type SolanaClientConfig as CoreSolanaClientConfig } from '@veridex/sdk/chains/solana';
 import { BaseAgentChainClient } from './ChainClient';
 
 /**

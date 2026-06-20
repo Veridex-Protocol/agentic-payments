@@ -53,7 +53,7 @@ export class NonceManager {
         if (!this.pendingNonces.has(keyHash)) {
             this.pendingNonces.set(keyHash, new Set());
         }
-        this.pendingNonces.get(keyHash)!.add(nonce);
+        this.pendingNonces.get(keyHash)?.add(nonce);
     }
 
     /**

@@ -6,7 +6,7 @@
  * 
  * Extends the core SDK to support agent operations on Sui.
  */
-import { SuiClient as CoreSuiClient, SuiClientConfig as CoreSuiClientConfig } from '@veridex/sdk/chains/sui';
+import { SuiClient as CoreSuiClient, type SuiClientConfig as CoreSuiClientConfig } from '@veridex/sdk/chains/sui';
 import { BaseAgentChainClient } from './ChainClient';
 
 /**

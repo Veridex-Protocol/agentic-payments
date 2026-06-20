@@ -340,7 +340,6 @@ export class IdentityClient {
           return parsed.args.tokenId;
         }
       } catch {
-        continue;
       }
     }
 

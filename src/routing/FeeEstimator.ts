@@ -11,7 +11,7 @@
  * 
  * This module connects to the Veridex Relayer API to get real-time fee quotes.
  */
-import { createRelayerClient, RelayerClient } from '@veridex/sdk';
+import { createRelayerClient, type RelayerClient } from '@veridex/sdk';
 
 export class FeeEstimator {
   private relayerClient?: RelayerClient;

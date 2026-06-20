@@ -14,7 +14,7 @@
  * the configured facilitator.
  */
 
-import {
+import type {
   Payment402Request,
   Payment402Response,
   PaymentSettlementResponse,

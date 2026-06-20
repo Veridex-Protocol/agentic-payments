@@ -7,8 +7,8 @@
  * and settlement.
  */
 
-import { ethers } from 'ethers';
-import { StoredSession } from '../../session/SessionStorage';
+import type { ethers } from 'ethers';
+import type { StoredSession } from '../../session/SessionStorage';
 
 /** Supported protocol identifiers */
 export type ProtocolName = 'x402' | 'ucp' | 'acp' | 'ap2' | 'axtp' | 'direct' | 'mpp';

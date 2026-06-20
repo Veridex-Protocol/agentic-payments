@@ -19,15 +19,15 @@
 
 import { ethers } from 'ethers';
 import {
-  PasskeyCredential,
+  type PasskeyCredential,
   generateSecp256k1KeyPair,
   computeSessionKeyHash,
   deriveEncryptionKey,
   encrypt,
   decrypt,
 } from '@veridex/sdk';
-import { SessionStorage, StoredSession, SessionKeyConfig } from './SessionStorage';
-import { SpendingTracker, LimitCheckResult } from './SpendingTracker';
+import { SessionStorage, type StoredSession, type SessionKeyConfig } from './SessionStorage';
+import { SpendingTracker, type LimitCheckResult } from './SpendingTracker';
 import { AgentPaymentError, AgentPaymentErrorCode } from '../types/errors';
 
 export class SessionKeyManager {

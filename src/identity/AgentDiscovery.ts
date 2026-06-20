@@ -14,8 +14,8 @@
  * - ADR-0029 §Phase 3 AgentDiscovery
  * - UATL paper §8 Unified Identity Resolution Protocol
  */
-import { IdentityClient } from './IdentityClient';
-import { ReputationClient } from './ReputationClient';
+import type { IdentityClient } from './IdentityClient';
+import type { ReputationClient } from './ReputationClient';
 import type {
   DiscoveryQuery,
   AgentRegistration,
@@ -24,7 +24,6 @@ import type {
   AgentRegistrationFile,
   UniversalAgentIdentifier,
   WellKnownAgentRegistration,
-  ERC8004Config,
 } from './types';
 
 // ============================================================================
@@ -33,7 +32,6 @@ import type {
 
 export class AgentDiscovery {
   private identityClient: IdentityClient;
-  private reputationClient: ReputationClient;
   private relayerUrl?: string;
 
   constructor(

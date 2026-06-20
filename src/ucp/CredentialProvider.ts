@@ -13,9 +13,9 @@
  * - **Tokenization**: Creates opaque payment tokens linked to Session Keys.
  * - **Checkout**: Handles checkout requests and authorizes limits.
  */
-import { UCPProfile, UCPCheckoutRequest, UCPCheckoutResponse } from '../types/ucp';
-import { StoredSession } from '../session/SessionStorage';
-import { SessionKeyManager } from '../session/SessionKeyManager';
+import type { UCPProfile, UCPCheckoutRequest, UCPCheckoutResponse } from '../types/ucp';
+import type { StoredSession } from '../session/SessionStorage';
+import type { SessionKeyManager } from '../session/SessionKeyManager';
 
 export class UCPCredentialProvider {
   constructor(private sessionManager: SessionKeyManager) { }

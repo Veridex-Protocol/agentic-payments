@@ -13,10 +13,10 @@
  * ```
  */
 
-import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { AgentWallet } from '../AgentWallet';
-import { AgentWalletConfig, SessionStatus, PaymentReceipt, SpendingAlert, HistoryOptions } from '../types/agent';
-import { CostEstimate, DetectionResult, ProtocolName, UniversalFetchOptions } from '../protocols/base/types';
+import type { AgentWalletConfig, SessionStatus, PaymentReceipt, SpendingAlert, HistoryOptions } from '../types/agent';
+import type { CostEstimate, DetectionResult, ProtocolName, UniversalFetchOptions } from '../protocols/base/types';
 
 // Re-export HistoryOptions with different name to avoid conflict
 export type { HistoryOptions as HookHistoryOptions } from '../types/agent';
@@ -207,7 +207,7 @@ export function useMultiChainBalance(wallet: AgentWallet | null) {
           if (Array.isArray(chainBalances)) {
             for (const bal of chainBalances) {
               balanceArray.push({
-                chain: parseInt(chainKey) || 0,
+                chain: parseInt(chainKey, 10) || 0,
                 token: bal.token || 'native',
                 balance: BigInt(bal.balance || 0),
                 balanceUSD: bal.balanceUSD || 0,

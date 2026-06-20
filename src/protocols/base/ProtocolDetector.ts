@@ -14,8 +14,8 @@
  * Results are cached per-origin to avoid repeated detection (~50-100ms savings).
  */
 
-import { ProtocolHandler } from './ProtocolHandler';
-import { DetectionCacheEntry, DetectionResult, ProtocolName } from './types';
+import type { ProtocolHandler } from './ProtocolHandler';
+import type { DetectionCacheEntry, DetectionResult, ProtocolName } from './types';
 
 /** Default cache TTL: 5 minutes */
 const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000;

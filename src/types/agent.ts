@@ -9,7 +9,7 @@
  * - {@link PaymentParams}: Structure of a payment request.
  * - {@link SessionStatus}: State of the active session key.
  */
-import { PasskeyCredential, TokenBalance, PortfolioBalance } from '@veridex/sdk';
+import type { PasskeyCredential, } from '@veridex/sdk';
 import type { Mandate } from '../policy/types';
 import type { TraceStorageAdapter } from '../trace/types';
 

@@ -20,13 +20,13 @@
  * This module handles everything else.
  */
 
-import { createHash, randomBytes } from 'crypto';
-import {
+import { createHash, randomBytes } from 'node:crypto';
+import type {
   Payment402Request,
   Payment402Response,
   X402Scheme,
 } from '../types/x402';
-import { StoredSession } from '../session/SessionStorage';
+import type { StoredSession } from '../session/SessionStorage';
 
 // ============================================================================
 // Types
@@ -329,7 +329,7 @@ export class NonEvmPaymentSigner {
     const parsed = parseFloat(amount);
 
     // If amount is in smallest unit (large number), convert
-    const value = parsed > 1_000_000 ? parsed / Math.pow(10, decimals) : parsed;
+    const value = parsed > 1_000_000 ? parsed / 10 ** decimals : parsed;
 
     // Stablecoins are ~1:1
     const stablecoins = ['USDC', 'USDT', 'DAI', 'BUSD'];
@@ -355,7 +355,7 @@ export class NonEvmPaymentSigner {
       if (symbol !== 'default' && upper.includes(symbol)) return dec;
     }
 
-    return chainDecimals['default'] || 6;
+    return chainDecimals.default || 6;
   }
 }
 
@@ -491,7 +491,7 @@ export class StarknetPaymentSigner implements ChainSigner {
     try {
       const { ec, hash } = await import('starknet');
       const msgHash = hash.computeHashOnElements(
-        [BigInt('0x' + Buffer.from(message).toString('hex'))],
+        [BigInt(`0x${Buffer.from(message).toString('hex')}`)],
       );
       const sig = ec.starkCurve.sign(msgHash, this.privateKey);
       return JSON.stringify({ r: sig.r.toString(16), s: sig.s.toString(16) });

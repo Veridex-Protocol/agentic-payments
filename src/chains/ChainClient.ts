@@ -11,7 +11,7 @@
  * - Gas estimation for agent operations.
  * - Unified transaction payload building.
  */
-import { ChainClient as CoreChainClient, ChainConfig } from '@veridex/sdk';
+import type { ChainClient as CoreChainClient, ChainConfig } from '@veridex/sdk';
 import { PythOracle } from '../oracle/PythOracle';
 
 /**
@@ -64,7 +64,7 @@ export abstract class BaseAgentChainClient implements AgentChainClient {
         return 1.0; // Fallback
     }
 
-    async getTokenPriceUSD(tokenAddress: string): Promise<number> {
+    async getTokenPriceUSD(_tokenAddress: string): Promise<number> {
         // TODO: Implement token address to Feed ID mapping
         // For now, check if it's USDC or similar known tokens?
         // Or simply fail/return default.

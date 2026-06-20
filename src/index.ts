@@ -14,7 +14,7 @@
  * - **Types**: Comprehensive type definitions for sessions, payments, and protocols.
  */
 import { AgentWallet } from './AgentWallet';
-import { AgentWalletConfig } from './types/agent';
+import type { AgentWalletConfig } from './types/agent';
 
 export async function createAgentWallet(config: AgentWalletConfig): Promise<AgentWallet> {
   const wallet = new AgentWallet(config);

@@ -324,7 +324,7 @@ export class ParallelRouteFinder {
         balance: ChainBalance,
         targetChain: number,
         targetToken: string,
-        amountUSD: number,
+        _amountUSD: number,
         config: RouteFindingConfig
     ): Promise<RouteCandidate | null> {
         // Estimate bridge parameters

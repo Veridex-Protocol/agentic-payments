@@ -14,7 +14,7 @@
  * - **Dead Letter Queue**: Isolated storage for persistently failing transactions.
  */
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 
 export type TransactionPriority = 'low' | 'normal' | 'high' | 'critical';
 export type TransactionStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'expired' | 'cancelled';
@@ -357,7 +357,7 @@ export class TransactionQueue extends EventEmitter {
                         this.emit('transaction:retry', tx, tx.attempts);
                         // Schedule with exponential backoff
                         const delay = Math.min(
-                            this.config.retryBaseDelayMs * Math.pow(2, tx.attempts - 1),
+                            this.config.retryBaseDelayMs * 2 ** (tx.attempts - 1),
                             this.config.retryMaxDelayMs
                         );
                         setTimeout(() => this.scheduleProcessing(), delay);

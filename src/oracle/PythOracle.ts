@@ -18,8 +18,8 @@ import {
     DEFAULT_MAX_STALE_SECONDS,
     LowConfidenceError,
     OracleError,
-    PriceQuote,
-    PriceQuoteOptions,
+    type PriceQuote,
+    type PriceQuoteOptions,
     StalePriceError,
 } from './StalePriceError';
 
@@ -85,11 +85,11 @@ export class PythOracle {
             });
 
             const data = response.data;
-            if (data && data.parsed && data.parsed.length > 0) {
+            if (data?.parsed && data.parsed.length > 0) {
                 const update = data.parsed[0] as PythPrice;
-                const priceUnscaled = parseInt(update.price.price);
+                const priceUnscaled = parseInt(update.price.price, 10);
                 const expo = update.price.expo;
-                const price = priceUnscaled * Math.pow(10, expo);
+                const price = priceUnscaled * 10 ** expo;
 
                 this.cache.set(feedId, {
                     price,
@@ -164,10 +164,10 @@ export class PythOracle {
         }
 
         const update = data.parsed[0] as PythPrice;
-        const priceUnscaled = parseInt(update.price.price);
-        const confUnscaled = parseInt(update.price.conf);
+        const priceUnscaled = parseInt(update.price.price, 10);
+        const confUnscaled = parseInt(update.price.conf, 10);
         const expo = update.price.expo;
-        const scale = Math.pow(10, expo);
+        const scale = 10 ** expo;
         const price = priceUnscaled * scale;
         const confidence = confUnscaled * scale;
         const publishTime = update.price.publish_time;

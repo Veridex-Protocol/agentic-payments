@@ -20,7 +20,7 @@
  */
 
 import { ProtocolHandler } from '../base/ProtocolHandler';
-import { CostEstimate, PaymentSettlement, ProtocolContext, ProtocolName } from '../base/types';
+import type { CostEstimate, PaymentSettlement, ProtocolContext, ProtocolName } from '../base/types';
 import { AgentPaymentError, AgentPaymentErrorCode } from '../../types/errors';
 
 // ── MPP Types ──
@@ -356,7 +356,7 @@ export class MPPHandler extends ProtocolHandler {
 
   private roughUSDEstimate(amount: string, token: string): number {
     const parsed = parseFloat(amount);
-    if (isNaN(parsed)) return 0;
+    if (Number.isNaN(parsed)) return 0;
     const stablecoins = ['USDC', 'USDT', 'DAI', 'BUSD', 'TUSD', 'USD'];
     const isStable = stablecoins.some((s) => token.toUpperCase().includes(s));
     if (isStable) {
