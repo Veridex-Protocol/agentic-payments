@@ -12,6 +12,8 @@
 import type { PasskeyCredential, } from '@veridex/sdk';
 import type { Mandate } from '../policy/types';
 import type { TraceStorageAdapter } from '../trace/types';
+import type { ProtectedRpcResolver } from '../protected/ProtectedRpc';
+import type { PaymentAttestationGuard, PolicyAttestation } from '../protected/PolicyAttestation';
 
 export interface AgentWalletConfig {
   // Master passkey credential (from @veridex/sdk)
@@ -56,6 +58,21 @@ export interface AgentWalletConfig {
 
   // Trace storage adapter for evidence layer (opt-in)
   traceStorage?: TraceStorageAdapter;
+
+  /**
+   * Bring-your-own MEV-protected / private RPC for transaction broadcast,
+   * keyed by chain id (or a resolver). When set for a chain, transactions are
+   * sent through the integrator's protected endpoint/provider/relay instead of
+   * the default public RPC. See {@link ProtectedRpcResolver}.
+   */
+  protectedRpc?: ProtectedRpcResolver;
+
+  /**
+   * Require a signed policy verdict, bound to the exact payment, before the
+   * signer broadcasts it (closes the local-host policy-bypass gap). Defaults to
+   * warn-only when the guard's own mode is unset. See {@link PaymentAttestationGuard}.
+   */
+  attestationGuard?: PaymentAttestationGuard;
 }
 
 export interface PaymentParams {
@@ -65,6 +82,11 @@ export interface PaymentParams {
   chain: number;
   protocol?: 'x402' | 'ucp' | 'direct';
   metadata?: Record<string, any>;
+  /**
+   * Signed policy verdict authorizing this exact payment. Checked by the
+   * {@link AgentWalletConfig.attestationGuard} before signing.
+   */
+  policyAttestation?: PolicyAttestation;
 }
 
 export interface PaymentReceipt {

@@ -97,6 +97,11 @@ export * from './protocols/acp';
 export * from './protocols/ap2';
 export * from './protocols/mpp';
 
+// Hardened settlement gateway — bring-your-own protected RPC (Gap 4)
+export * from './protected/ProtectedRpc';
+// Policy attestation enforced at the payment signer (Gap 1)
+export * from './protected/PolicyAttestation';
+
 // Server Middleware (ADR-0024)
 export * from './middleware/veridexPaywall';
 

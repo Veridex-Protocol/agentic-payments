@@ -40,6 +40,12 @@ import { BalanceCache } from './monitoring/BalanceCache';
 import { AgentPaymentError, AgentPaymentErrorCode } from './types/errors';
 import type { SpendingAlert } from './types/agent';
 import { ethers } from 'ethers';
+import {
+  resolveProtectedRpc,
+  resolveProtectedProvider,
+  broadcastProtected,
+} from './protected/ProtectedRpc';
+import { computeIntentHash } from './protected/PolicyAttestation';
 import { ProtocolDetector } from './protocols/base/ProtocolDetector';
 import { X402Handler } from './protocols/x402/X402Handler';
 import { UCPHandler } from './protocols/ucp/UCPHandler';
@@ -648,9 +654,6 @@ export class AgentWallet {
   }
 
   async pay(params: PaymentParams): Promise<PaymentReceipt> {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/c6390672-1465-4a0d-bb12-57e7bed0bb2e', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'AgentWallet.ts:pay:entry', message: 'pay() called', data: { params, hasSession: !!this.currentSession }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H2,H3,H4' }) }).catch(() => { });
-    // #endregion
 
     if (!this.currentSession) await this.init();
 
@@ -708,9 +711,6 @@ export class AgentWallet {
       }
     }
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/c6390672-1465-4a0d-bb12-57e7bed0bb2e', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'AgentWallet.ts:pay:beforeDirectTransfer', message: 'About to execute direct transfer', data: { signerAddress: signer.address, targetChain: params.chain, token: params.token, amount: params.amount }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H2,H4,H5' }) }).catch(() => { });
-    // #endregion
 
     // Execute direct transfer using session wallet (bypasses passkey requirement)
     const receipt = await this.withRetry(async () => {
@@ -768,9 +768,6 @@ export class AgentWallet {
     const address = ethers.computeAddress(this.currentSession.publicKey);
     const targetChain = chain || 30; // Default to Base
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/c6390672-1465-4a0d-bb12-57e7bed0bb2e', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'AgentWallet.ts:getBalance', message: 'getBalance called', data: { chain, targetChain, address }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H1' }) }).catch(() => { });
-    // #endregion
 
     // Check cache
     const cached = this.balanceCache.get(address, targetChain);
@@ -1076,21 +1073,46 @@ export class AgentWallet {
       );
     }
 
-    // Connect signer to provider
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    // Resolve the broadcast route: the integrator's protected RPC/provider/relay
+    // when configured for this chain, otherwise the default public RPC.
+    const protectedCfg = resolveProtectedRpc(this.config.protectedRpc, params.chain);
+    const provider = resolveProtectedProvider(protectedCfg, rpcUrl);
     const connectedSigner = signer.connect(provider);
 
     const tokenUpper = params.token.toUpperCase();
     const amount = BigInt(params.amount);
 
-    let tx: ethers.TransactionResponse;
+    // Policy-attestation gate (Gap 1): require a signed allow verdict bound to
+    // this exact payment before signing. Warn-only by default; an explicit deny
+    // always blocks.
+    if (this.config.attestationGuard) {
+      const intentHash = await computeIntentHash({
+        chain: params.chain,
+        recipient: params.recipient,
+        token: params.token,
+        amount: params.amount,
+      });
+      const decision = await this.config.attestationGuard.authorizeSign({
+        intentHash,
+        attestation: params.policyAttestation,
+      });
+      if (!decision.allowed) {
+        throw new AgentPaymentError(
+          AgentPaymentErrorCode.POLICY_VIOLATION,
+          `Payment blocked by policy attestation: ${decision.reasons.join('; ')}`,
+          'A signed policy verdict authorizing this payment is required.',
+          false,
+          { intentHash, reasons: decision.reasons }
+        );
+      }
+    }
+
+    let txHash: string;
+    let txResponse: ethers.TransactionResponse | undefined;
 
     if (tokenUpper === 'ETH' || tokenUpper === 'NATIVE') {
       // Check ETH balance first
       const ethBalance = await provider.getBalance(signer.address);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/c6390672-1465-4a0d-bb12-57e7bed0bb2e', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'AgentWallet.ts:executeDirectTransfer:ethBalance', message: 'ETH balance check', data: { signerAddress: signer.address, ethBalance: ethBalance.toString(), requestedAmount: amount.toString() }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H6' }) }).catch(() => { });
-      // #endregion
 
       if (ethBalance < amount) {
         throw new AgentPaymentError(
@@ -1101,11 +1123,15 @@ export class AgentWallet {
         );
       }
 
-      // Native ETH transfer
-      tx = await connectedSigner.sendTransaction({
-        to: params.recipient,
-        value: amount,
-      });
+      // Native ETH transfer — routed through the protected relay/provider.
+      const broadcast = await broadcastProtected(
+        connectedSigner,
+        { to: params.recipient, value: amount },
+        protectedCfg,
+        { chain: params.chain },
+      );
+      txHash = broadcast.hash;
+      txResponse = broadcast.response;
     } else if (tokenUpper === 'USDC') {
       // ERC20 transfer
       const tokenAddress = USDC_ADDRESSES[params.chain];
@@ -1127,9 +1153,6 @@ export class AgentWallet {
 
       // Check USDC balance first
       const usdcBalance = await tokenContract.balanceOf(signer.address);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/c6390672-1465-4a0d-bb12-57e7bed0bb2e', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'AgentWallet.ts:executeDirectTransfer:usdcBalance', message: 'USDC balance check', data: { signerAddress: signer.address, usdcContract: tokenAddress, usdcBalance: usdcBalance.toString(), requestedAmount: amount.toString(), chain: params.chain }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H6' }) }).catch(() => { });
-      // #endregion
 
       if (usdcBalance < amount) {
         throw new AgentPaymentError(
@@ -1140,7 +1163,9 @@ export class AgentWallet {
         );
       }
 
-      tx = await tokenContract.transfer(params.recipient, amount);
+      // ERC20 transfer — broadcasts through the connected (protected) provider.
+      txResponse = await tokenContract.transfer(params.recipient, amount);
+      txHash = txResponse.hash;
     } else {
       throw new AgentPaymentError(
         AgentPaymentErrorCode.TOKEN_NOT_SUPPORTED,
@@ -1150,14 +1175,15 @@ export class AgentWallet {
       );
     }
 
-    // Wait for confirmation
-    const receipt = await tx.wait();
+    // Wait for confirmation. Relay-submitted txs have no response object, so
+    // we wait via the provider on the returned hash.
+    if (txResponse) {
+      await txResponse.wait();
+    } else {
+      await provider.waitForTransaction(txHash);
+    }
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/c6390672-1465-4a0d-bb12-57e7bed0bb2e', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'AgentWallet.ts:executeDirectTransfer:success', message: 'Transfer confirmed', data: { txHash: tx.hash, blockNumber: receipt?.blockNumber }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H2,H5' }) }).catch(() => { });
-    // #endregion
-
-    return { transactionHash: tx.hash };
+    return { transactionHash: txHash };
   }
 
   /**
