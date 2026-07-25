@@ -117,6 +117,8 @@ export interface EvaluationContext {
   trace?: TraceContext;
   /** Agent identity information (ERC-8004, if available) */
   agentIdentity?: AgentIdentityContext;
+  /** Assurance of the credential rooting this session's authority (if known) */
+  credential?: CredentialContext;
   /** Recent transaction history for pattern analysis */
   history?: TransactionHistoryEntry[];
   /** Timestamp of this evaluation */
@@ -142,6 +144,55 @@ export interface AgentIdentityContext {
   reputationScore: number;
   registeredAt: number;
   operator: string;
+}
+
+// ── Credential Assurance ──
+
+/**
+ * Assurance tier of the credential rooting the agent's authority, derived from
+ * the WebAuthn Backup Eligibility (BE) flag.
+ *
+ * - `device-bound` (BE=0): key cannot leave the authenticator (secure element or
+ *   hardware key). Highest assurance; not recoverable.
+ * - `synced` (BE=1): eligible for provider sync (iCloud Keychain, Google Password
+ *   Manager, Windows Hello). Recoverable — but its security now rests on the
+ *   user's platform account.
+ * - `unknown`: assurance could not be determined.
+ */
+export type CredentialAssuranceLevel = 'device-bound' | 'synced' | 'unknown';
+
+/** The credential backing the current session, surfaced to policy rules. */
+export interface CredentialContext {
+  /** Key hash of the master credential. */
+  keyHash: string;
+  /** Assurance tier used for authority gating. */
+  level: CredentialAssuranceLevel;
+  /** Raw WebAuthn BE flag, when known. */
+  backupEligible?: boolean;
+  /** Raw WebAuthn BS flag, when known. */
+  backupState?: boolean;
+  /** Authenticator model identifier (AAGUID, hex), when provided. */
+  aaguid?: string;
+}
+
+/**
+ * Tiering of agent authority by credential assurance.
+ *
+ * Regulated buyers routinely prohibit consumer synced passkeys for privileged
+ * operations and mandate device-bound FIDO2. This is how a mandate expresses that.
+ */
+export interface AssurancePolicy {
+  /**
+   * Ceiling (USD, per transaction) that a `synced` credential may authorize.
+   * Actions above it get `onExceed`. Omit for no ceiling.
+   */
+  syncedMaxPerTransactionUSD?: number;
+  /** Action types that require a `device-bound` credential regardless of amount. */
+  requireDeviceBoundFor?: ActionType[];
+  /** Verdict when a synced credential exceeds its authority. Default: `escalate`. */
+  onExceed?: Extract<Verdict, 'escalate' | 'block'>;
+  /** Verdict when assurance is `unknown`. Default: `flag`. */
+  onUnknown?: Verdict;
 }
 
 /** Historical transaction record for pattern analysis. */
@@ -257,6 +308,8 @@ export interface Mandate {
   escalation: EscalationThreshold;
   /** Circuit breaker configuration */
   circuitBreaker: CircuitBreakerConfig;
+  /** Authority tiering by credential assurance. Omit to disable assurance gating. */
+  assurance?: AssurancePolicy;
 
   /** Custom rules (loaded dynamically) */
   customRules?: PolicyRule[];

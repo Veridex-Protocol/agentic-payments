@@ -21,6 +21,7 @@ import type {
   ERC3009Authorization,
 } from '../types/x402';
 import type { StoredSession } from '../session/SessionStorage';
+import { resolveEvmChainId, resolveToken } from './tokens';
 
 // ERC-3009 type hash for transferWithAuthorization
 const _TRANSFER_WITH_AUTHORIZATION_TYPEHASH = ethers.keccak256(
@@ -28,38 +29,6 @@ const _TRANSFER_WITH_AUTHORIZATION_TYPEHASH = ethers.keccak256(
     'TransferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)'
   )
 );
-
-// Token decimals by symbol/common addresses
-const TOKEN_DECIMALS: Record<string, number> = {
-  'USDC': 6,
-  'USDT': 6,
-  'DAI': 18,
-  'WETH': 18,
-  // Common USDC addresses
-  '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913': 6, // Base USDC
-  '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48': 6, // Ethereum USDC
-  '0xaf88d065e77c8cC2239327C5EDb3A432268e5831': 6, // Arbitrum USDC
-  '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85': 6, // Optimism USDC
-  '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0': 6, // Cronos Testnet devUSDC.e
-  '0xf951eC28187D9E5Ca673Da8FE6757E6f0Be5F77C': 6, // Cronos Mainnet USDC.e
-  '0x7A7754A2089df825801A0a8d95a9801928bFb22A': 6, // Ethereum Sepolia USDC
-};
-
-// Token symbol to address mapping for x402 (default to Base USDC)
-const TOKEN_SYMBOL_TO_ADDRESS: Record<string, Record<number, string>> = {
-  'USDC': {
-    2: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',   // Ethereum Mainnet
-    30: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',  // Base Mainnet
-    23: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',  // Arbitrum One
-    24: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',  // Optimism
-    25: '0xf951eC28187D9E5Ca673Da8FE6757E6f0Be5F77C',  // Cronos Mainnet
-    10002: '0x7A7754A2089df825801A0a8d95a9801928bFb22A', // Ethereum Sepolia
-    10025: '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0', // Cronos Testnet
-  },
-};
-
-// Default token address when chain-specific address is not found
-const DEFAULT_USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'; // Base USDC
 
 // Token metadata for EIP-712 domains
 const TOKEN_METADATA: Record<string, { name: string; version: string }> = {
@@ -97,11 +66,13 @@ export class PaymentSigner {
     const now = Math.floor(Date.now() / 1000);
     const deadline = request.deadline || (now + DEFAULT_VALIDITY_WINDOW_SECONDS);
 
-    // Resolve token address from symbol if needed
-    const tokenAddress = this.resolveTokenAddress(request.token, request.chain);
-
-    // Get token decimals
-    const decimals = this.getTokenDecimals(request.token);
+    // Resolve the settlement token. `network` wins over the Wormhole chain id because
+    // Wormhole gives BSC mainnet and BSC testnet the same id (4). Unknown tokens throw:
+    // guessing an address or a decimals scale here is how you misprice by 10^12.
+    const evmChainId = resolveEvmChainId(request.network, request.chain);
+    const tokenInfo = resolveToken(request.token, evmChainId);
+    const tokenAddress = tokenInfo.address;
+    const decimals = tokenInfo.decimals;
 
     // Parse amount - handle both raw and formatted amounts
     let valueInSmallestUnit: bigint;
@@ -129,7 +100,6 @@ export class PaymentSigner {
 
     // EIP-712 domain - for x402 exact scheme on EVM
     const tokenMetadata = TOKEN_METADATA[tokenAddress.toLowerCase()] || { name: 'x402', version: '1' };
-    const evmChainId = this.wormholeToEvmChainId(request.chain);
 
     const domain: ethers.TypedDataDomain = {
       name: tokenMetadata.name,
@@ -232,75 +202,4 @@ export class PaymentSigner {
     }
   }
 
-  /**
-   * Get token decimals by address or symbol.
-   */
-  private getTokenDecimals(token: string): number {
-    // Check direct match
-    if (token in TOKEN_DECIMALS) {
-      return TOKEN_DECIMALS[token];
-    }
-
-    // Check lowercase
-    const lowerToken = token.toLowerCase();
-    for (const [key, value] of Object.entries(TOKEN_DECIMALS)) {
-      if (key.toLowerCase() === lowerToken) {
-        return value;
-      }
-    }
-
-    // Default to 6 for stablecoins (most x402 payments are USDC)
-    if (!token.startsWith('0x')) {
-      // This is a symbol, not an address - don't warn for known symbols
-      return 6;
-    }
-    console.warn(`[x402] Unknown token decimals for ${token}, defaulting to 6`);
-    return 6;
-  }
-
-  /**
-   * Resolve token symbol to address for the given chain.
-   * If already an address, returns it as-is.
-   */
-  private resolveTokenAddress(token: string, wormholeChainId: number): string {
-    // If it's already an address, return it
-    if (token.startsWith('0x') && token.length === 42) {
-      return token;
-    }
-
-    // Look up the token symbol
-    const upperSymbol = token.toUpperCase();
-    const chainAddresses = TOKEN_SYMBOL_TO_ADDRESS[upperSymbol];
-    if (chainAddresses) {
-      const address = chainAddresses[wormholeChainId];
-      if (address) {
-        return address;
-      }
-    }
-
-    // Default to Base USDC for unknown symbols (for testing)
-    console.warn(`[x402] Unknown token symbol ${token} for chain ${wormholeChainId}, using default USDC address`);
-    return DEFAULT_USDC_ADDRESS;
-  }
-
-  /**
-   * Map Wormhole chain ID to EVM chain ID.
-   */
-  private wormholeToEvmChainId(wormholeChainId: number): number {
-    const mapping: Record<number, number> = {
-      2: 1,        // Ethereum Mainnet
-      30: 8453,    // Base Mainnet
-      23: 42161,   // Arbitrum One
-      24: 10,      // Optimism
-      5: 137,      // Polygon
-      6: 43114,    // Avalanche
-      4: 56,       // BSC
-      25: 25,      // Cronos Mainnet
-      10002: 11155111, // Ethereum Sepolia
-      10004: 84532,    // Base Sepolia
-      10025: 338,      // Cronos Testnet
-    };
-
-    return mapping[wormholeChainId] || wormholeChainId;
-  }
 }

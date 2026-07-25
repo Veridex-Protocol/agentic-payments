@@ -137,6 +137,7 @@ export interface ICMSessionInfo {
  * - Avalanche-optimized gas estimation
  */
 export class AvalancheChainClient extends BaseAgentChainClient {
+    private evmCore: CoreEVMClient;
     private provider: ethers.JsonRpcProvider;
     private chainlinkAvaxUsdFeed: string;
     private chainlinkUsdcUsdFeed: string;

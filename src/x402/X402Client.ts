@@ -53,6 +53,7 @@ const DEFAULT_CONFIG: Required<X402ClientConfig> = {
 export class X402Client {
   private parser: PaymentParser;
   private signer: PaymentSigner;
+  private nonceManager: NonceManager;
   private ucpClient: UCPClient;
   private cronosAdapter?: CronosFacilitatorAdapter;
   private config: Required<X402ClientConfig>;

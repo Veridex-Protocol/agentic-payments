@@ -103,6 +103,7 @@ export interface MonadChainClientConfig extends CoreEVMClientConfig {
  * ```
  */
 export class MonadChainClient extends BaseAgentChainClient {
+    private evmCore: CoreEVMClient;
     private provider: ethers.JsonRpcProvider;
     private serviceDirectoryAddress: string;
     private identityRegistryAddress: string;

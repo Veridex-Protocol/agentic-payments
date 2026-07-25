@@ -32,6 +32,7 @@ import type {
 
 export class AgentDiscovery {
   private identityClient: IdentityClient;
+  private reputationClient: ReputationClient;
   private relayerUrl?: string;
 
   constructor(

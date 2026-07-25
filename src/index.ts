@@ -36,6 +36,7 @@ export * from './session/SessionStorage';
 export * from './x402/X402Client';
 export * from './x402/PaymentParser';
 export * from './x402/PaymentSigner';
+export * from './x402/tokens';
 export * from './x402/NonEvmPaymentSigner';
 // CronosFacilitatorAdapter is NOT exported from main entry point due to node:crypto dependency
 // Import it directly for server-side usage: import { CronosFacilitatorAdapter } from '@veridex/agentic-payments/x402/adapters/CronosFacilitatorAdapter';
@@ -73,6 +74,7 @@ export * from './policy';
 export * from './security';
 export * from './trace';
 export * from './escalation';
+export * from './wallets/VeridexGoatWalletWrapper';
 
 export * from './ucp/PaymentTokenizer';
 
@@ -87,7 +89,12 @@ export * from './oracle/PythFeeds';
 export * from './oracle/StalePriceError';
 
 // DEX
-export * from './routing/DEXAggregator';
+export {
+  DEXAggregator,
+  type SwapQuote,
+  type SwapHop,
+  type TokenInfo as DexTokenInfo,
+} from './routing/DEXAggregator';
 
 // Universal Protocol Abstraction Layer (ADR-0025)
 export * from './protocols/base';
@@ -100,7 +107,21 @@ export * from './protocols/mpp';
 // Hardened settlement gateway — bring-your-own protected RPC (Gap 4)
 export * from './protected/ProtectedRpc';
 // Policy attestation enforced at the payment signer (Gap 1)
-export * from './protected/PolicyAttestation';
+export {
+  canonicalJson,
+  sha256Hex,
+  computeIntentHash,
+  canonicalAttestationPayload,
+  signAttestation,
+  PaymentAttestationGuard,
+  type PaymentIntent as AttestedPaymentIntent,
+  type PolicyAttestation,
+  type AttestationSigner,
+  type AttestationVerifier,
+  type TeeQuoteVerifier,
+  type AttestationEnforcement,
+  type PaymentAttestationGuardOptions,
+} from './protected/PolicyAttestation';
 
 // Server Middleware (ADR-0024)
 export * from './middleware/veridexPaywall';
@@ -110,85 +131,3 @@ export * from './middleware/nextAppRouter';
 
 // Generic EVM Facilitator Adapter (Base, Ethereum, Solana via Coinbase x402)
 export * from './x402/adapters/EVMFacilitatorAdapter';
-
-// Identity & Reputation (ERC-8004 — chain-agnostic for all EVM chains)
-export {
-  // Clients
-  IdentityClient,
-  ReputationClient,
-  ServiceDirectoryClient,
-  RegistrationFileManager,
-  TrustGate,
-  AgentDiscovery,
-  // Facade (backward-compatible)
-  ERC8004Client,
-  // Registration & Pipeline
-  AgentRegistrar,
-  ReputationPipeline,
-  // Constants
-  ERC8004_MAINNET_IDENTITY,
-  ERC8004_MAINNET_REPUTATION,
-  ERC8004_TESTNET_IDENTITY,
-  ERC8004_TESTNET_REPUTATION,
-  getERC8004Addresses,
-} from './identity';
-export type {
-  // ERC-8004 standard types
-  AgentRegistration,
-  MetadataEntry,
-  FeedbackEntry,
-  FeedbackSummary,
-  ValidationStatus,
-  AgentRegistrationFile,
-  ServiceEndpoint,
-  AgentRegistryRef,
-  ERC8004Config,
-  RegisterAgentOptions,
-  FeedbackOptions,
-  TrustGateConfig,
-  DiscoveryQuery,
-  TrustCheckResult,
-  // UATL types (multi-chain)
-  UniversalAgentIdentifier,
-  TrustStrategy,
-  ChainPresence,
-  ResolvedAgent,
-  AggregatedReputation,
-  ChainReputationBreakdown,
-  ReputationAggregationMode,
-  ReputationQueryOptions,
-  TrustAttestation,
-  WellKnownAgentRegistration,
-  // Veridex-specific
-  ServiceRegistration,
-  // Legacy types (backward-compatible)
-  AgentIdentity,
-  AgentMetadata,
-  FeedbackParams,
-  ERC8004ClientConfig,
-  AgentRegistrarConfig,
-  RegistrationResult,
-  AgentVisibility,
-  AgentProfile,
-  SettlementEvent,
-  ServiceCallMetrics,
-  ReputationPipelineConfig,
-} from './identity';
-// Note: ServiceInfo and ReputationSummary are already exported from MonadChainClient
-// Use the identity module versions via: import { ... } from '@veridex/agent-sdk/identity'
-
-// Re-export core SDK functions for frontend convenience and to avoid dual-package usage
-export {
-  createSDK,
-  generateSecp256k1KeyPair,
-  computeSessionKeyHash,
-  deriveEncryptionKey,
-  encrypt,
-  // Feature Flags (multi-hub toggle)
-  getFeatureFlags,
-  setFeatureFlags,
-  resetFeatureFlags,
-  isMultiHubEnabled,
-  getEffectivePrimaryHub,
-} from '@veridex/sdk';
-export type { FeatureFlags } from '@veridex/sdk';

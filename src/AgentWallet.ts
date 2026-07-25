@@ -54,7 +54,7 @@ import { AP2Handler } from './protocols/ap2/AP2Handler';
 import { MPPHandler } from './protocols/mpp/MPPHandler';
 import type { UniversalFetchOptions, ProtocolContext, CostEstimate, } from './protocols/base/types';
 import { PolicyEngine } from './policy/PolicyEngine';
-import type { ProposedAction, EvaluationContext, VerdictResult } from './policy/types';
+import type { ProposedAction, EvaluationContext, VerdictResult, CredentialContext } from './policy/types';
 import { AssetWhitelistRule } from './policy/rules/AssetWhitelistRule';
 import { ChainWhitelistRule } from './policy/rules/ChainWhitelistRule';
 import { ProtocolWhitelistRule } from './policy/rules/ProtocolWhitelistRule';
@@ -111,6 +111,10 @@ export class AgentWallet {
   private _lastTrace?: TraceResult;
   private escalationManager?: EscalationManager;
   private circuitBreaker?: CircuitBreaker;
+
+  public ucpProvider: UCPCredentialProvider;
+  public router: CrossChainRouter;
+  public evidenceBundle?: EvidenceBundle;
 
   constructor(private config: AgentWalletConfig) {
     this.sessionManager = new SessionKeyManager();
@@ -453,10 +457,20 @@ export class AgentWallet {
           metadata: { url, scheme: estimate.scheme },
         };
 
+        const assurance = (this.config.masterCredential as any).assurance;
+        const credential: CredentialContext = {
+          keyHash: this.config.masterCredential.keyHash,
+          level: assurance?.level ?? 'unknown',
+          backupEligible: assurance?.backupEligible,
+          backupState: assurance?.backupState,
+          aaguid: assurance?.aaguid,
+        };
+
         const evalCtx: EvaluationContext = {
           action: proposedAction,
           session: this.currentSession!,
           mandate: this.policyEngine.getMandate(),
+          credential,
           timestamp: Date.now(),
         };
 
@@ -524,7 +538,7 @@ export class AgentWallet {
         // Capture trace if TraceInterceptor is configured
         if (this.traceInterceptor) {
           const traceResult = await this.traceInterceptor.capture({
-            sessionKeyHash: this.currentSession?.keyHash,
+            sessionKeyHash: this.currentSession!.keyHash,
             reasoning: { toolCalls: [] },
             proposedAction,
             policyEvaluation: verdict,
@@ -553,9 +567,9 @@ export class AgentWallet {
         if (estimate.amountUSD > 0) {
           await this.sessionManager.recordSpending(this.currentSession!, estimate.amountUSD);
           this.alertManager.checkSpending(
-            this.currentSession?.keyHash,
-            this.currentSession?.metadata.dailySpentUSD,
-            this.currentSession?.config.dailyLimitUSD
+            this.currentSession!.keyHash,
+            this.currentSession!.metadata.dailySpentUSD,
+            this.currentSession!.config.dailyLimitUSD
           );
         }
       } catch {
@@ -728,22 +742,22 @@ export class AgentWallet {
         chain: params.chain ?? 30,
         timestamp: Date.now(),
       };
-      this.anomalyDetector.observe(this.currentSession?.keyHash, observation);
-      const fpScore = this.anomalyDetector.score(this.currentSession?.keyHash, observation);
+      this.anomalyDetector.observe(this.currentSession!.keyHash, observation);
+      const fpScore = this.anomalyDetector.score(this.currentSession!.keyHash, observation);
       if (fpScore.suspicious) {
         this.alertManager.checkSpending(
-          this.currentSession?.keyHash,
-          this.currentSession?.metadata.dailySpentUSD,
-          this.currentSession?.config.dailyLimitUSD
+          this.currentSession!.keyHash,
+          this.currentSession!.metadata.dailySpentUSD,
+          this.currentSession!.config.dailyLimitUSD
         );
       }
     }
 
     // Check for alerts
     this.alertManager.checkSpending(
-      this.currentSession?.keyHash,
-      this.currentSession?.metadata.dailySpentUSD,
-      this.currentSession?.config.dailyLimitUSD
+      this.currentSession!.keyHash,
+      this.currentSession!.metadata.dailySpentUSD,
+      this.currentSession!.config.dailyLimitUSD
     );
 
     const paymentReceipt: PaymentReceipt = {
@@ -932,7 +946,7 @@ export class AgentWallet {
    */
   async register(options: RegisterAgentOptions): Promise<{ agentId: bigint; agentURI: string }> {
     this.requireERC8004();
-    const result = await this.identityClient?.registerWithFile(options);
+    const result = await this.identityClient!.registerWithFile(options);
     this._agentId = result.agentId;
     return result;
   }
@@ -945,7 +959,7 @@ export class AgentWallet {
     this.requireERC8004();
     if (!this._agentId) return null;
     try {
-      return await this.identityClient?.getAgent(this._agentId);
+      return await this.identityClient!.getAgent(this._agentId);
     } catch {
       return null;
     }
@@ -966,7 +980,7 @@ export class AgentWallet {
    */
   async submitFeedback(agentId: bigint, options: FeedbackOptions): Promise<void> {
     this.requireERC8004();
-    const tx = await this.reputationClient?.giveFeedback(agentId, options);
+    const tx = await this.reputationClient!.giveFeedback(agentId, options);
     await tx.wait();
   }
 
@@ -978,7 +992,7 @@ export class AgentWallet {
    */
   async getReputation(agentId: bigint, trustedReviewers?: string[]): Promise<FeedbackSummary> {
     this.requireERC8004();
-    return this.reputationClient?.getSummary(agentId, trustedReviewers || []);
+    return this.reputationClient!.getSummary(agentId, trustedReviewers || []);
   }
 
   /**
@@ -986,7 +1000,7 @@ export class AgentWallet {
    */
   async getReputationScore(agentId: bigint, trustedReviewers?: string[]): Promise<number> {
     this.requireERC8004();
-    return this.reputationClient?.getReputationScore(agentId, trustedReviewers);
+    return this.reputationClient!.getReputationScore(agentId, trustedReviewers);
   }
 
   /**
@@ -994,7 +1008,7 @@ export class AgentWallet {
    */
   async discover(query: DiscoveryQuery): Promise<AgentRegistration[]> {
     this.requireERC8004();
-    return this.agentDiscovery?.search(query);
+    return this.agentDiscovery!.search(query);
   }
 
   /**
@@ -1002,7 +1016,7 @@ export class AgentWallet {
    */
   async resolveAgent(input: string): Promise<ResolvedAgent | null> {
     this.requireERC8004();
-    return this.agentDiscovery?.resolve(input);
+    return this.agentDiscovery!.resolve(input);
   }
 
   /**
@@ -1165,7 +1179,7 @@ export class AgentWallet {
 
       // ERC20 transfer — broadcasts through the connected (protected) provider.
       txResponse = await tokenContract.transfer(params.recipient, amount);
-      txHash = txResponse.hash;
+      txHash = txResponse!.hash;
     } else {
       throw new AgentPaymentError(
         AgentPaymentErrorCode.TOKEN_NOT_SUPPORTED,

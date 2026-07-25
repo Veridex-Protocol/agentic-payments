@@ -24,6 +24,9 @@ export type {
   ActionType,
   TraceContext,
   AgentIdentityContext,
+  CredentialContext,
+  CredentialAssuranceLevel,
+  AssurancePolicy,
   TransactionHistoryEntry,
 } from './types';
 
@@ -37,3 +40,4 @@ export { TimeWindowRule } from './rules/TimeWindowRule';
 export { VelocityRule } from './rules/VelocityRule';
 export type { VelocityConfig } from './rules/VelocityRule';
 export { HumanApprovalRule } from './rules/HumanApprovalRule';
+export { CredentialAssuranceRule } from './rules/CredentialAssuranceRule';
