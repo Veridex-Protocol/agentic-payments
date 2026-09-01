@@ -389,10 +389,12 @@ async function verifyX402(data: string, resolved: ReturnType<typeof resolveConfi
         return result.isValid === true;
       }
     } catch {
-      console.warn('[veridexPaywall] Facilitator unavailable, using local validation');
+      console.warn('[veridexPaywall] x402 facilitator unavailable — rejecting payment (local signature check is not sufficient)');
     }
 
-    return true;
+    // Local structure checks passed but cryptographic verification failed.
+    // Returning true here would allow unverified payments through.
+    return false;
   } catch {
     return false;
   }
@@ -430,11 +432,10 @@ async function verifyUCP(data: string, resolved: ReturnType<typeof resolveConfig
         return result.isValid === true;
       }
     } catch {
-      console.warn('[veridexPaywall] UCP facilitator unavailable, using local validation');
+      console.warn('[veridexPaywall] UCP facilitator unavailable — rejecting payment (credential signature not verified)');
     }
 
-    // Local: credential structure is valid
-    return true;
+    return false;
   } catch {
     return false;
   }
@@ -473,10 +474,10 @@ async function verifyACP(data: string, resolved: ReturnType<typeof resolveConfig
         return result.isValid === true;
       }
     } catch {
-      console.warn('[veridexPaywall] ACP facilitator unavailable, using local validation');
+      console.warn('[veridexPaywall] ACP facilitator unavailable — rejecting payment (token signature not verified)');
     }
 
-    return true;
+    return false;
   } catch {
     return false;
   }
@@ -513,10 +514,10 @@ async function verifyAP2(data: string, resolved: ReturnType<typeof resolveConfig
         return result.isValid === true;
       }
     } catch {
-      console.warn('[veridexPaywall] AP2 facilitator unavailable, using local validation');
+      console.warn('[veridexPaywall] AP2 facilitator unavailable — rejecting payment (fulfillment signature not verified)');
     }
 
-    return true;
+    return false;
   } catch {
     return false;
   }

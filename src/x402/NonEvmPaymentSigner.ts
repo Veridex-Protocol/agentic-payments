@@ -33,7 +33,7 @@ import type { StoredSession } from '../session/SessionStorage';
 // ============================================================================
 
 /** Chain family for routing to the correct signing logic */
-export type ChainFamily = 'solana' | 'aptos' | 'sui' | 'starknet' | 'stacks';
+export type ChainFamily = 'solana' | 'aptos' | 'sui' | 'starknet' | 'stacks' | 'stellar';
 
 /** Non-EVM payment authorization (chain-agnostic) */
 export interface NonEvmPaymentAuthorization {
@@ -112,6 +112,12 @@ const NETWORK_TO_CHAIN_FAMILY: Record<string, ChainFamily> = {
   'stacks-mainnet': 'stacks',
   'stacks-testnet': 'stacks',
   'stacks': 'stacks',
+  // Stellar
+  'stellar:testnet': 'stellar',
+  'stellar:pubnet': 'stellar',
+  'stellar-testnet': 'stellar',
+  'stellar-pubnet': 'stellar',
+  'stellar': 'stellar',
 };
 
 // Wormhole chain ID → chain family
@@ -129,6 +135,7 @@ const CHAIN_TOKEN_DECIMALS: Record<ChainFamily, Record<string, number>> = {
   sui: { 'USDC': 6, 'SUI': 9, 'USDT': 6, 'default': 6 },
   starknet: { 'USDC': 6, 'ETH': 18, 'USDT': 6, 'default': 6 },
   stacks: { 'USDC': 6, 'STX': 6, 'sBTC': 8, 'default': 6 },
+  stellar: { 'USDC': 7, 'XLM': 7, 'default': 7 },
 };
 
 // ============================================================================
@@ -535,6 +542,74 @@ export class StacksPaymentSigner implements ChainSigner {
 
   getAddress(): string {
     return this.address;
+  }
+}
+
+/**
+ * Stellar Ed25519 signer.
+ *
+ * Wraps a Stellar secret key for payment signing. Stellar uses Ed25519 natively.
+ *
+ * Accepts either:
+ * - A raw 32-byte private key as hex string (no 0x prefix)
+ * - A Stellar StrKey (starts with 'S') — requires `@stellar/stellar-sdk` at runtime
+ *
+ * Usage:
+ * ```typescript
+ * const signer = new StellarPaymentSigner({
+ *   secretKey: 'SBXXXXXXXXX...', // Stellar secret key StrKey
+ *   publicKey: 'GBXXXXXXXXX...', // Stellar public key StrKey
+ * });
+ * ```
+ */
+export class StellarPaymentSigner implements ChainSigner {
+  private secretKeyHex: string | null;
+  private stellarSecretKey: string | null;
+  private publicKey: string;
+
+  constructor(params: {
+    /** Raw 32-byte private key as hex, OR a Stellar StrKey ('S...') */
+    secretKey: string;
+    /** Stellar public key StrKey ('G...') */
+    publicKey: string;
+  }) {
+    if (params.secretKey.startsWith('S')) {
+      this.stellarSecretKey = params.secretKey;
+      this.secretKeyHex = null;
+    } else {
+      this.secretKeyHex = params.secretKey.replace(/^0x/, '');
+      this.stellarSecretKey = null;
+    }
+    this.publicKey = params.publicKey;
+  }
+
+  async signMessage(message: Uint8Array): Promise<string> {
+    // Decode StrKey to raw bytes when a Stellar secret key was provided
+    let privKeyBytes: Uint8Array;
+    if (this.stellarSecretKey) {
+      try {
+        const { Keypair } = await import('@stellar/stellar-sdk');
+        const kp = Keypair.fromSecret(this.stellarSecretKey);
+        // rawSecretKey() returns the 32-byte Ed25519 seed
+        privKeyBytes = kp.rawSecretKey();
+      } catch {
+        throw new Error(
+          '[StellarPaymentSigner] @stellar/stellar-sdk is required to decode Stellar StrKey secret keys. ' +
+          'Install it, or pass the raw 32-byte hex private key instead.',
+        );
+      }
+    } else {
+      privKeyBytes = Buffer.from(this.secretKeyHex!, 'hex');
+    }
+
+    // Stellar uses pure Ed25519 — @noble/curves/ed25519 is already a dependency
+    const { ed25519 } = await import('@noble/curves/ed25519');
+    const signature = ed25519.sign(message, privKeyBytes);
+    return Buffer.from(signature).toString('hex');
+  }
+
+  getAddress(): string {
+    return this.publicKey;
   }
 }
 

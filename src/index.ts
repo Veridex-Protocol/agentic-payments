@@ -57,11 +57,14 @@ export * from './chains/StarknetChainClient';
 export * from './chains/StacksChainClient';
 export * from './chains/MonadChainClient';
 export * from './chains/AvalancheChainClient';
+export * from './chains/StellarChainClient';
 export * from './chains/ChainClientFactory';
 
 export * from './session/StacksSpendingTracker';
 // StacksFacilitatorAdapter is NOT exported from main entry point due to x402-stacks dependency
 // Import it directly for server-side usage: import { StacksFacilitatorAdapter } from '@veridex/agentic-payments/x402/adapters/StacksFacilitatorAdapter';
+// StellarFacilitatorAdapter: import directly for server-side usage:
+// import { StellarFacilitatorAdapter, buildStellarPaymentRequirements } from '@veridex/agentic-payments/x402/adapters/StellarFacilitatorAdapter';
 export * from './routing/BridgeOrchestrator';
 
 export * from './monitoring/AuditLogger';
