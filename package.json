@@ -1,6 +1,6 @@
 {
   "name": "@veridex/agentic-payments",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "description": "Veridex Universal Agentic Payments SDK — x402, UCP, ACP, AP2 with auto-detection",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
