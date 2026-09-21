@@ -247,18 +247,15 @@ export class ERC8004Client {
   // ==========================================================================
 
   async registerService(params: ServiceRegistration): Promise<ethers.TransactionReceipt> {
-    this.requireServiceDirectory();
-    return this.serviceDirectory?.registerService(params);
+    return this.requireServiceDirectory().registerService(params);
   }
 
   async deactivateService(agentId: bigint, serviceIndex: bigint): Promise<ethers.TransactionReceipt> {
-    this.requireServiceDirectory();
-    return this.serviceDirectory?.deactivateService(agentId, serviceIndex);
+    return this.requireServiceDirectory().deactivateService(agentId, serviceIndex);
   }
 
   async activateService(agentId: bigint, serviceIndex: bigint): Promise<ethers.TransactionReceipt> {
-    this.requireServiceDirectory();
-    return this.serviceDirectory?.activateService(agentId, serviceIndex);
+    return this.requireServiceDirectory().activateService(agentId, serviceIndex);
   }
 
   async updateService(
@@ -266,8 +263,7 @@ export class ERC8004Client {
     serviceIndex: bigint,
     params: Partial<Pick<ServiceRegistration, 'endpointUrl' | 'description' | 'pricePerCall' | 'paymentToken'>>,
   ): Promise<ethers.TransactionReceipt> {
-    this.requireServiceDirectory();
-    return this.serviceDirectory?.updateService(agentId, serviceIndex, params);
+    return this.requireServiceDirectory().updateService(agentId, serviceIndex, params);
   }
 
   // ==========================================================================
@@ -275,23 +271,19 @@ export class ERC8004Client {
   // ==========================================================================
 
   async discoverServices(category: string): Promise<ServiceInfo[]> {
-    this.requireServiceDirectory();
-    return this.serviceDirectory?.discoverServices(category);
+    return this.requireServiceDirectory().discoverServices(category);
   }
 
   async getActiveServices(): Promise<ServiceInfo[]> {
-    this.requireServiceDirectory();
-    return this.serviceDirectory?.getActiveServices();
+    return this.requireServiceDirectory().getActiveServices();
   }
 
   async getServicesByAgent(agentId: bigint): Promise<ServiceInfo[]> {
-    this.requireServiceDirectory();
-    return this.serviceDirectory?.getServicesByAgent(agentId);
+    return this.requireServiceDirectory().getServicesByAgent(agentId);
   }
 
   async getService(serviceId: bigint): Promise<ServiceInfo> {
-    this.requireServiceDirectory();
-    return this.serviceDirectory?.getService(serviceId);
+    return this.requireServiceDirectory().getService(serviceId);
   }
 
   // ==========================================================================
@@ -318,9 +310,10 @@ export class ERC8004Client {
   // Private
   // ==========================================================================
 
-  private requireServiceDirectory(): void {
+  private requireServiceDirectory(): ServiceDirectoryClient {
     if (!this.serviceDirectory) {
       throw new Error('ERC8004Client: serviceDirectoryAddress not configured.');
     }
+    return this.serviceDirectory;
   }
 }

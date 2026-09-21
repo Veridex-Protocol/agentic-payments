@@ -1,5 +1,14 @@
 # Agentic Payments Protocol Integration Guide
 
+> **Compatibility status (reviewed 2026-09-06):** this document describes the
+> package's internal universal-handler architecture, not x402 Foundation
+> conformance. Its x402 parser remains EVM-oriented and accepts legacy
+> `maxAmountRequired`/network aliases. For current x402 v2, use
+> `PaymentRequired.accepts`, `PaymentRequirements.amount`,
+> `PaymentPayload.accepted`, CAIP-2 networks, and the standard HTTP headers. For
+> Stellar exact/custom `upto`, use `@veridex/stellar` or the official Stellar
+> packages; this handler is not evidence of Stellar interoperability.
+
 > **Package:** `@veridex/agentic-payments`  
 > **Version:** 2.0.0-beta.1 (Universal Protocol Abstraction Layer — ADR-0025)  
 > **Last Updated:** 2026-02-15
@@ -156,9 +165,12 @@ The `ProtocolDetector` caches results per-origin (5-minute TTL) and supports:
 
 ## 3. Protocol Implementations
 
-### 3.1 x402 Protocol (Web-Native)
+### 3.1 x402 compatibility handler (EVM-oriented)
 
-**Trigger:** HTTP 402 status with `PAYMENT-REQUIRED` header
+**Trigger:** HTTP 402 status with `PAYMENT-REQUIRED` or accepted legacy header.
+The parser shown here does not parse current v2 `PaymentRequired.accepts`; it
+expects legacy/simplified requirement data and maps non-CAIP aliases to internal
+Wormhole IDs. Treat this as package behavior, not an x402 v2 conformance example.
 
 ```typescript
 // protocols/x402/X402Handler.ts
@@ -201,11 +213,16 @@ export class X402Handler extends ProtocolHandler {
 }
 ```
 
-**Header Format:**
+**Internal compatibility input example (not canonical x402 v2):**
 
 ```
 PAYMENT-REQUIRED: {"chain":8453,"token":"0x833589...","amount":"1000000","recipient":"0x..."}
 ```
+
+For a current v2 integration, decode base64 `PaymentRequired`, select from
+`accepts`, create `PaymentPayload.accepted`, and send the base64 payload in
+`PAYMENT-SIGNATURE`. Use the official x402 packages or `@veridex/stellar` for
+the Stellar binding.
 
 ### 3.2 UCP Protocol (Google/Shopify)
 
@@ -605,6 +622,12 @@ export class StablecoinSettler {
 ---
 
 ## 6. Server Middleware (Universal Multi-Protocol)
+
+The middleware configuration in this section is package-specific. Values such
+as `base-sepolia`/`base-mainnet` are internal aliases, not canonical x402 v2
+CAIP-2 network identifiers. The package's generated x402 declaration should not
+be used as a current v2 interoperability example without an adapter/conformance
+test.
 
 The server middleware accepts payments from **any** supported protocol (x402, UCP, ACP, AP2).
 When no payment is attached it returns **402** and advertises all enabled protocols so any agent

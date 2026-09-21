@@ -1,12 +1,21 @@
 # Migration Guide: @veridex/sdk to @veridex/agentic-payments
 
+> **x402 migration boundary (reviewed 2026-09-06):** examples in the historical
+> “manual x402” section below use noncanonical header names and do not represent
+> current x402 v2. Current v2 HTTP uses `PAYMENT-REQUIRED`,
+> `PAYMENT-SIGNATURE`, `PAYMENT-RESPONSE`, `PaymentRequirements.amount`, and
+> `PaymentPayload.accepted`. The package's current x402 handler remains
+> compatibility-limited/EVM-oriented. Use `@veridex/stellar` or official x402
+> packages for Stellar rather than migrating a Stellar integration to
+> `agent.fetch()`.
+
 This guide helps you migrate from using `@veridex/sdk` directly to using `@veridex/agentic-payments` for agent-based payment workflows.
 
 ## Overview
 
 `@veridex/agentic-payments` is built on top of `@veridex/sdk` and provides:
 - **Session key management** with spending limits
-- **Automatic x402 payment handling**
+- **Compatibility x402 handling for the package's current EVM-oriented parser**
 - **UCP credential provider** for payment tokenization
 - **MCP server** for LLM integration
 - **Multi-chain support** with unified interface
@@ -30,7 +39,7 @@ npm install @veridex/agentic-payments
 | Authentication | Direct passkey | Session keys with limits |
 | Payments | Manual signing | Automatic with retry |
 | Multi-chain | Chain-specific clients | Unified interface |
-| x402 | Manual handling | Automatic interception |
+| x402 | Manual handling | Compatibility-limited EVM interception; not canonical Stellar v2 |
 | Monitoring | None | Audit logging, alerts |
 
 ## Migration Steps
@@ -84,7 +93,7 @@ const receipt = await agent.pay({
 });
 ```
 
-### 2. Replace Manual x402 Handling
+### 2. Historical manual x402 example (do not copy for v2)
 
 **Before:**
 
@@ -115,10 +124,11 @@ async function fetchWithPayment(url: string) {
 }
 ```
 
-**After:**
+**After (package compatibility handler; not the recommended Stellar v2 path):**
 
 ```typescript
-// Automatic handling built-in
+// Automatic handling for the package's currently supported compatibility path.
+// Stellar x402 v2 should use @veridex/stellar or official @x402 packages.
 const response = await agent.fetch('https://api.paid-service.com/resource');
 // Payment automatically handled on 402 response
 ```

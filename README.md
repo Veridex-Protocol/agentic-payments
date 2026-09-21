@@ -1,5 +1,14 @@
 # @veridex/agentic-payments
 
+> **x402 compatibility note (reviewed 2026-09-06):** the package's current
+> internal x402 parser/signing path is EVM-oriented and still accepts legacy
+> requirement shapes such as `maxAmountRequired` and non-CAIP network aliases.
+> It is not the canonical x402 v2 Stellar buyer path and does not prove Stellar
+> `exact` or Veridex `upto` interoperability. For Stellar x402, use the focused
+> `@veridex/stellar` package or official `@x402/fetch` + `@x402/stellar`. The
+> `PolicyEngine`/`SpendingLimitRule` may still be used locally before the focused
+> wallet signs.
+
 [![npm version](https://img.shields.io/npm/v/@veridex/agentic-payments.svg)](https://www.npmjs.com/package/@veridex/agentic-payments)
 [![Tests](https://img.shields.io/badge/tests-372%20passing-brightgreen.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -30,7 +39,8 @@ const agent = await createAgentWallet({
   },
 });
 
-// Auto-detects protocol (x402/UCP/ACP/AP2/MPP), signs payment, returns data
+// Auto-detects a supported protocol. The x402 branch is currently
+// compatibility-limited/EVM-oriented; use the focused Stellar package for Stellar.
 const response = await agent.fetch('https://api.merchant.com/premium-data');
 const data = await response.json();
 
@@ -81,13 +91,15 @@ Session created     Private key encrypted    SDK parses payment terms
                                              Trace recorded → Evidence bundle
 ```
 
-The SDK enforces **human-defined spending limits** via session keys. The agent can spend up to the daily/per-transaction limits without human intervention. All payments are cryptographically signed, policy-gated, and produce verifiable audit trails.
+The SDK provides human-defined spending limits via session keys. Enforcement and
+settlement support vary by protocol/chain; application code must verify the
+handler and network-specific path before enabling unattended payment.
 
 ## Protocol Support
 
 | Protocol | Creator | Status | Priority | Use Case |
 |----------|---------|--------|----------|----------|
-| **x402** | Coinbase/Cloudflare | ✅ Full | 70 | HTTP micropayments (402 Payment Required) |
+| **x402** | x402 Foundation | Compatibility-limited EVM handler; not current Stellar v2 conformance | 70 | Legacy/current mixed HTTP detection and EVM signing |
 | **UCP** | Google/Shopify | ✅ Full | 100 | Commerce/search integration |
 | **ACP** | OpenAI/Stripe | ✅ Detection + Handler | 90 | ChatGPT ecosystem payments |
 | **MPP** | Tempo | ✅ Detection + Handler | 85 | Micropayments (charge + session intents) |
@@ -320,10 +332,11 @@ const agent = await createAgentWallet({
 });
 ```
 
-#### Automatic Protocol Payments (fetch)
+#### Protocol-handler payments (`fetch`)
 
 ```typescript
-// The SDK auto-detects x402/UCP/ACP/AP2/MPP and handles payment transparently
+// The SDK detects registered handlers. The x402 handler is currently
+// compatibility-limited and is not the Stellar x402 v2 path.
 const response = await agent.fetch('https://paid-api.example.com/market-data');
 const data = await response.json();
 
@@ -501,14 +514,18 @@ NonEvmPaymentSigner.getChainFamily('solana-devnet'); // 'solana'
 
 ### x402 Payment Parsing
 
+This is the package's legacy compatibility parser, not a current x402 v2
+`PaymentRequired` parser:
+
 ```typescript
 import { PaymentParser } from '@veridex/agentic-payments';
 
 const parser = new PaymentParser();
 
-// Parse base64-encoded PAYMENT-REQUIRED header
-const requirements = parser.parsePaymentRequired(headerValue);
-// → { paymentRequirements: [{ scheme, network, maxAmountRequired, payTo, asset }] }
+const request = parser.parseHeaders({
+  'payment-required': headerValue,
+});
+// Internal Payment402Request or null. Do not use this for Stellar x402 v2.
 ```
 
 ### Multi-Chain Agent Clients
@@ -634,6 +651,11 @@ const dataURI = RegistrationFileManager.buildDataURI(file);
 ```
 
 ### Server Middleware (Merchant Side)
+
+The `base-sepolia` values below are internal compatibility aliases accepted by
+this package, not x402 v2 CAIP-2 wire identifiers. A new x402 v2 server should
+use current official middleware and `eip155:84532`; a Stellar server should use
+the focused seller path in `stellar-facilitator`.
 
 ```typescript
 import { veridexPaywall, createPaywallHandler } from '@veridex/agentic-payments';

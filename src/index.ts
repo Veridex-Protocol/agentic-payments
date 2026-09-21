@@ -38,6 +38,8 @@ export * from './x402/PaymentParser';
 export * from './x402/PaymentSigner';
 export * from './x402/tokens';
 export * from './x402/NonEvmPaymentSigner';
+export { PlatformPaymentsAdapter } from './platform/PlatformPaymentsAdapter';
+export type { SponsoredExecutionResult } from './platform/PlatformPaymentsAdapter';
 // CronosFacilitatorAdapter is NOT exported from main entry point due to node:crypto dependency
 // Import it directly for server-side usage: import { CronosFacilitatorAdapter } from '@veridex/agentic-payments/x402/adapters/CronosFacilitatorAdapter';
 

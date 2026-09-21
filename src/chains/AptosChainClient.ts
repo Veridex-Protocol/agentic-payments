@@ -8,7 +8,6 @@
  */
 import { AptosClient as CoreAptosClient, type AptosClientConfig as CoreAptosClientConfig } from '@veridex/sdk/chains/aptos';
 import { BaseAgentChainClient } from './ChainClient';
-import type { Aptos } from '@aptos-labs/ts-sdk';
 
 /**
  * Agent-specific Aptos chain client.
@@ -23,7 +22,7 @@ export class AptosChainClient extends BaseAgentChainClient {
     }
 
 
-    getClient(): Aptos {
+    getClient() {
         return this.aptosCore.getClient();
     }
 }
