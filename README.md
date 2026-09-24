@@ -679,6 +679,36 @@ const handler = createPaywallHandler({
 const paid = await handler(req, res);
 ```
 
+### Nano (XNO) feeless settlement rail
+
+Nano (XNO) is a feeless, sub-second, serverless rail with no smart contracts and no
+custody layer — a payment is proven by the block existing on the Nano ledger, so
+settlement needs no trusted third-party facilitator to batch or hold funds. The
+`NanoFacilitatorAdapter` verifies and settles Nano x402 payments by reading a Nano
+node directly (via `block_info`), matching the recipient address and raw amount of
+the original requirement.
+
+```typescript
+import { NanoFacilitatorAdapter, buildNanoPaymentRequirements } from '@veridex/agentic-payments';
+
+// Merchant: build PAYMENT-REQUIRED requirements for a Nano leg
+const req = buildNanoPaymentRequirements({
+  priceXNO: '0.001',
+  recipientAddress: 'nano_1youraddress...',
+  network: 'nano:mainnet',
+});
+// { scheme: 'exact', network: 'nano:mainnet', maxAmountRequired: '<raw>', asset: 'XNO', payTo: '...' }
+
+// Merchant: verify + settle once the block lands on the ledger
+const nano = new NanoFacilitatorAdapter({ network: 'nano:mainnet' });
+const isValid = await nano.verify(paymentRequest, paymentResponse); // on-ledger proof
+if (isValid) await nano.settle(paymentRequest, paymentResponse);    // same fact, returns the block hash
+```
+
+The `nano:mainnet` identifier follows this package's existing compatibility-alias
+convention for the `stellar:*` adapters; it is an additive rail, not a claim of
+canonical x402 v2 CAIP-2 conformance.
+
 ### Hardened MCP Server
 
 ```typescript
