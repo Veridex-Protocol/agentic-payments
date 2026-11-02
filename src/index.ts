@@ -136,3 +136,6 @@ export * from './middleware/nextAppRouter';
 
 // Generic EVM Facilitator Adapter (Base, Ethereum, Solana via Coinbase x402)
 export * from './x402/adapters/EVMFacilitatorAdapter';
+
+// Nano (XNO) Facilitator Adapter — feeless on-ledger x402 settlement via Nano node RPC
+export * from './x402/adapters/NanoFacilitatorAdapter';
