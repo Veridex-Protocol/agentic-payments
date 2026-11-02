@@ -691,19 +691,28 @@ the original requirement.
 ```typescript
 import { NanoFacilitatorAdapter, buildNanoPaymentRequirements } from '@veridex/agentic-payments';
 
-// Merchant: build PAYMENT-REQUIRED requirements for a Nano leg
-const req = buildNanoPaymentRequirements({
-  priceXNO: '0.001',
-  recipientAddress: 'nano_1youraddress...',
-  network: 'nano:mainnet',
-});
-// { scheme: 'exact', network: 'nano:mainnet', maxAmountRequired: '<raw>', asset: 'XNO', payTo: '...' }
-
-// Merchant: verify + settle once the block lands on the ledger
+// Pass a database-backed `store` (NanoOrderStore) in production; the default is in memory.
 const nano = new NanoFacilitatorAdapter({ network: 'nano:mainnet' });
-const isValid = await nano.verify(paymentRequest, paymentResponse); // on-ledger proof
-if (isValid) await nano.settle(paymentRequest, paymentResponse);    // same fact, returns the block hash
+
+// Merchant, 402 step: issue ONE order (opaque id + tagged exact amount + expiry window)
+const order = await nano.issueOrder({ recipient: 'nano_1youraddress...', priceXNO: '0.001' });
+const req = buildNanoPaymentRequirements({ priceXNO: '0.001', recipientAddress: order.payTo, order });
+// { scheme: 'exact', network: 'nano:mainnet', maxAmountRequired: '<tagged raw>', asset: 'XNO',
+//   payTo: '...', extra: { orderId, expiresAtMs } }
+
+// Merchant, paid retry: the payload carries { orderId, blockHash }
+const isValid = await nano.verify(paymentRequest, paymentResponse); // order-bound proof
+if (isValid) await nano.settle(paymentRequest, paymentResponse);    // re-checks, returns the block hash
 ```
+
+A Nano block has no memo, so a confirmed send alone does not say which order it paid.
+The adapter reads the order from its store (never from the request), requires the
+payload's `orderId`, and accepts only a confirmed send of exactly the order's amount to
+exactly its account, made inside the order's issue-to-expiry window. `blockHash ->
+orderId` is claimed once in the store (a hash cannot pay a second order and an order takes
+no second block), so a store that survives restarts and is shared by workers is what makes
+the replay protection durable. RPC lookups time out, cap the response size and refuse a
+plain-HTTP non-loopback URL.
 
 The `nano:mainnet` identifier follows this package's existing compatibility-alias
 convention for the `stellar:*` adapters; it is an additive rail, not a claim of

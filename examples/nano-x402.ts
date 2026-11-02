@@ -23,26 +23,25 @@ async function main() {
 
   console.log('== Paywall: the merchant offers a paid endpoint ==');
 
-  // Build the PAYMENT-REQUIRED requirements (the `nano:mainnet` leg).
-  const req = buildNanoPaymentRequirements({
-    priceXNO,
-    recipientAddress: recipient,
-    description: 'One LLM completion',
-  });
-  console.log('Payment requirement:', JSON.stringify(req, null, 2));
-  console.log('Raw amount (the smallest Nano unit):', req.maxAmountRequired);
-  console.log('Raw round-trips to XNO:', xnoToRaw(priceXNO));
-
   const nano = new NanoFacilitatorAdapter({ network: 'nano:mainnet' });
+
+  // Issue one order: an opaque id plus an exact, tagged amount and an expiry window.
+  const order = await nano.issueOrder({ recipient, priceXNO });
+
+  // Build the PAYMENT-REQUIRED requirements (the `nano:mainnet` leg) for that order.
+  const req = buildNanoPaymentRequirements({ priceXNO, recipientAddress: recipient, order, description: 'One LLM completion' });
+  console.log('Payment requirement:', JSON.stringify(req, null, 2));
+  console.log('Raw amount incl. the per-order tag:', req.maxAmountRequired);
+  console.log('Price in raw (no tag):', xnoToRaw(priceXNO));
   console.log('\nAdapter capabilities:', nano.getCapabilities());
 
   console.log('\n== The payer pays (block lands on the Nano ledger) ==');
   console.log('For feeless Nano there is no facilitator round-trip and no batching:');
   console.log('the payer submits a signed state block straight to the network.');
-  console.log('The block hash is carried in the x402 payment payload.');
+  console.log('The orderId and the block hash are carried in the x402 payment payload.');
 
   // On the merchant side, verifying and settling are the same on-ledger fact:
-  // does the block exist and does it pay *our* address the agreed raw amount?
+  // is the block a confirmed send of THIS order's exact amount to *our* address, inside its window, and not claimed before?
   console.log('\n== Merchant: verify + settle via the adapter ==');
   console.log('A payload for block HASH123... pays', priceXNO, 'XNO to', recipient);
   console.log('Settlement is on-ledger and feeless — no custodial facilitator,');
