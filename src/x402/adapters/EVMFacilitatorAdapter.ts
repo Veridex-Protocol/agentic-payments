@@ -280,10 +280,10 @@ export class EVMFacilitatorAdapter {
         `${this.facilitatorUrl}/settle`,
         facilitatorBody
       );
-      if (result) {
+      if (result && !isExplicitSettlementFailure(result)) {
         return {
           success: true,
-          transactionHash: result.txHash || result.transactionHash,
+          transactionHash: result.transaction || result.txHash || result.transactionHash,
           network: request.network,
           amount: request.amount,
         };
@@ -298,10 +298,10 @@ export class EVMFacilitatorAdapter {
         `${this.fallbackUrl}/settle`,
         facilitatorBody
       );
-      if (result) {
+      if (result && !isExplicitSettlementFailure(result)) {
         return {
           success: true,
-          transactionHash: result.txHash || result.transactionHash,
+          transactionHash: result.transaction || result.txHash || result.transactionHash,
           network: request.network,
           amount: request.amount,
         };
@@ -351,6 +351,18 @@ export class EVMFacilitatorAdapter {
 
     return response.json();
   }
+}
+
+/**
+ * A 2xx facilitator response can still describe a failed settlement
+ * (e.g. `{ success: false, errorReason: '...' }`). Such responses must never
+ * be reported as `success: true`.
+ */
+function isExplicitSettlementFailure(result: any): boolean {
+  if (!result || typeof result !== 'object') return true;
+  if (result.success === false) return true;
+  if (result.errorReason || result.error) return true;
+  return false;
 }
 
 // ---------------------------------------------------------------------------

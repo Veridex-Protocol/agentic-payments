@@ -88,7 +88,8 @@ export class SettlementVerifier {
     try {
       return await strategy.verify(settlement, traceHash);
     } catch {
-      // Verification failure is non-fatal — return basic proof
+      // Verification failure is non-fatal for evidence collection, but the
+      // resulting proof is explicitly marked as NOT confirmed on-chain.
       return this.basicProof(settlement);
     } finally {
       clearTimeout(timeout);
@@ -110,7 +111,9 @@ export class SettlementVerifier {
   }
 
   /**
-   * Basic proof constructed from settlement data when no strategy is available.
+   * Basic proof constructed from settlement data when no strategy is available
+   * or the strategy failed. This reflects the settlement claim only and is
+   * marked `confirmedOnChain: false`.
    */
   private basicProof(settlement: PaymentSettlement): SettlementProof {
     const chainId = this.parseChainId(settlement.network);
@@ -118,6 +121,7 @@ export class SettlementVerifier {
       txHash: settlement.txHash!,
       traceHashInCalldata: false,
       chain: chainId,
+      confirmedOnChain: false,
     };
   }
 
@@ -152,10 +156,12 @@ export class EVMSettlementStrategy implements SettlementVerificationStrategy {
     const chainId = this.parseChainId(settlement.network);
     const rpcUrl = this.rpcEndpoints[chainId];
     if (!rpcUrl) {
+      // No RPC configured — cannot independently confirm.
       return {
         txHash: settlement.txHash,
         traceHashInCalldata: false,
         chain: chainId,
+        confirmedOnChain: false,
       };
     }
 
@@ -216,6 +222,7 @@ export class EVMSettlementStrategy implements SettlementVerificationStrategy {
       blockNumber,
       traceHashInCalldata,
       chain: chainId,
+      confirmedOnChain: true,
     };
   }
 
