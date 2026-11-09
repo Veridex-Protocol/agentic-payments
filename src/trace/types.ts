@@ -82,6 +82,13 @@ export interface SettlementProof {
   chain: number;
   /** Block explorer URL */
   explorerUrl?: string;
+  /**
+   * True only when the transaction receipt was independently fetched from a
+   * chain RPC and reported success. False when the proof was built from the
+   * facilitator's own claim (no strategy, no RPC endpoint, or RPC error).
+   * Do not treat a proof with `confirmedOnChain !== true` as on-chain confirmation.
+   */
+  confirmedOnChain?: boolean;
 }
 
 /** Storage receipt from decentralized storage. */

@@ -55,6 +55,11 @@
  */
 
 import type { ProtocolName } from '../protocols/base/types';
+import {
+  validateSettlementResponse,
+  SettlementFailedError,
+  type SettlementEvidence,
+} from './settlementContract';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -98,8 +103,14 @@ export interface PaywallConfig {
   /** Payment scheme: 'exact' or 'upto' (default: 'exact') */
   scheme?: 'exact' | 'upto';
 
-  /** Facilitator / relayer URL for verification (default: Veridex Relayer) */
+  /** Facilitator / relayer URL for verification and settlement (default: Veridex Relayer) */
   facilitatorUrl?: string;
+
+  /**
+   * Timeout for the blocking settlement call in ms (default: 30000).
+   * Settlement is always awaited before access is granted; a timeout withholds access.
+   */
+  settlementTimeoutMs?: number;
 
   /** Custom verification function — overrides built-in verification for all protocols */
   verifyPayment?: (paymentData: string, protocol: ServerProtocol, config: PaywallConfig) => Promise<boolean>;
@@ -140,9 +151,12 @@ export interface PaywallConfig {
   mandateTTLSeconds?: number;
 }
 
-/** Payment info attached to `req.veridexPayment` after successful verification */
+/**
+ * Payment info attached to `req.veridexPayment` after successful verification
+ * AND settlement. It is never attached when settlement fails.
+ */
 export interface VeridexPaymentInfo {
-  /** Whether the payment was verified */
+  /** Whether the payment was verified and settled */
   verified: boolean;
   /** Which protocol the agent used */
   protocol: ServerProtocol;
@@ -154,6 +168,8 @@ export interface VeridexPaymentInfo {
   network: string;
   /** Raw payment data from the agent */
   rawPaymentData?: string;
+  /** Settlement evidence reported by the facilitator (present once settled) */
+  settlement?: SettlementEvidence;
 }
 
 // ---------------------------------------------------------------------------
@@ -547,34 +563,100 @@ async function verifyPayment(
 // Settlement
 // ---------------------------------------------------------------------------
 
+/**
+ * Settle a verified payment via the facilitator and validate the response
+ * against the settlement-success contract (see `settlementContract.ts`).
+ *
+ * Resolves with settlement evidence only when settlement definitively
+ * succeeded. Throws `SettlementFailedError` on rejection, non-2xx status,
+ * timeout, network failure, unparseable body, or an indeterminate result.
+ */
 async function settlePayment(
   protocol: ServerProtocol,
   data: string,
   resolved: ReturnType<typeof resolveConfig>
-): Promise<void> {
+): Promise<SettlementEvidence> {
   const rawAmt = toRawAmount(resolved.amount, resolved.rawAmount);
 
-  const response = await fetch(`${resolved.facilitatorUrl}/settle`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      protocol,
-      paymentPayload: data,
-      paymentRequirements: {
-        scheme: resolved.scheme,
-        network: resolved.network,
-        maxAmountRequired: rawAmt,
-        asset: resolved.token,
-        payTo: resolved.recipient,
-      },
-    }),
-    signal: AbortSignal.timeout(30000),
-  });
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw new Error(`Settlement failed: ${response.status} ${body}`);
+  let response: Response;
+  try {
+    response = await fetch(`${resolved.facilitatorUrl}/settle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        protocol,
+        paymentPayload: data,
+        paymentRequirements: {
+          scheme: resolved.scheme,
+          network: resolved.network,
+          maxAmountRequired: rawAmt,
+          asset: resolved.token,
+          payTo: resolved.recipient,
+        },
+      }),
+      signal: AbortSignal.timeout(resolved.settlementTimeoutMs ?? 30000),
+    });
+  } catch (err: any) {
+    throw new SettlementFailedError(`Settlement unavailable: ${err?.message || 'request failed'}`);
   }
+
+  if (!response || !response.ok) {
+    throw new SettlementFailedError(`Settlement failed: HTTP ${response?.status ?? 'unknown'}`);
+  }
+
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    throw new SettlementFailedError('Settlement indeterminate: response body is not valid JSON');
+  }
+
+  const result = validateSettlementResponse(body, resolved.network);
+  if (!result.ok) {
+    throw new SettlementFailedError(`Settlement indeterminate: ${result.reason}`);
+  }
+  return result.evidence;
+}
+
+/**
+ * Verify then settle. Returns payment info only when BOTH succeeded.
+ * Returns an error string (and never payment info) otherwise.
+ */
+async function verifyAndSettle(
+  incoming: { protocol: ServerProtocol; data: string },
+  resolved: ReturnType<typeof resolveConfig>
+): Promise<{ ok: true; payment: VeridexPaymentInfo } | { ok: false; error: string }> {
+  let isValid: boolean;
+  try {
+    isValid = await verifyPayment(incoming.protocol, incoming.data, resolved);
+  } catch (err: any) {
+    return { ok: false, error: err?.message || 'Payment verification failed' };
+  }
+  if (isValid !== true) {
+    return { ok: false, error: 'Payment verification failed' };
+  }
+
+  let evidence: SettlementEvidence;
+  try {
+    evidence = await settlePayment(incoming.protocol, incoming.data, resolved);
+  } catch (err: any) {
+    console.error(`[veridexPaywall] ${incoming.protocol} settlement failed — withholding access:`, err?.message);
+    return { ok: false, error: 'Payment settlement failed' };
+  }
+
+  const humanAmt = resolved.rawAmount ? toHumanAmount(resolved.amount) : resolved.amount;
+  return {
+    ok: true,
+    payment: {
+      verified: true,
+      protocol: incoming.protocol,
+      amount: humanAmt,
+      token: resolved.token,
+      network: resolved.network,
+      rawPaymentData: incoming.data,
+      settlement: evidence,
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -585,7 +667,10 @@ async function settlePayment(
  * Express middleware that accepts payments via any enabled protocol.
  *
  * When no payment is attached, returns 402 with headers advertising all
- * enabled protocols. When a payment is detected, verifies it and calls `next()`.
+ * enabled protocols. When a payment is detected, verifies it, awaits settlement,
+ * and calls `next()` only if both verification and settlement succeeded.
+ * Settlement failure, timeout, unavailability, or an indeterminate result
+ * returns 402 and never calls `next()` (fail closed).
  *
  * @example Simplest usage — all protocols, USDC on Base
  * ```typescript
@@ -623,40 +708,21 @@ export function veridexPaywall(config: PaywallConfig) {
       );
     }
 
-    // Verify the payment
-    try {
-      const isValid = await verifyPayment(incoming.protocol, incoming.data, resolved);
-
-      if (!isValid) {
-        return advertiseProtocols(res, req, resolved, 'Payment verification failed');
-      }
-
-      // Settle asynchronously
-      settlePayment(incoming.protocol, incoming.data, resolved).catch(err => {
-        console.error(`[veridexPaywall] ${incoming.protocol} settlement error (non-blocking):`, err.message);
-      });
-
-      // Attach payment info to request
-      const humanAmt = resolved.rawAmount ? toHumanAmount(resolved.amount) : resolved.amount;
-      req.veridexPayment = {
-        verified: true,
-        protocol: incoming.protocol,
-        amount: humanAmt,
-        token: resolved.token,
-        network: resolved.network,
-        rawPaymentData: incoming.data,
-      } satisfies VeridexPaymentInfo;
-
-      next();
-    } catch (err: any) {
-      return advertiseProtocols(res, req, resolved, err.message);
+    // Verify AND settle before granting access (fail closed, issue #3)
+    const outcome = await verifyAndSettle(incoming, resolved);
+    if (!outcome.ok) {
+      return advertiseProtocols(res, req, resolved, outcome.error);
     }
+
+    req.veridexPayment = outcome.payment;
+    next();
   };
 }
 
 /**
  * Standalone paywall handler for Next.js API routes, Hono, or any framework.
- * Returns `true` if payment is valid, `false` if 402 was sent.
+ * Returns `true` only after the payment is verified AND settled; `false` if 402 was sent.
+ * Settlement failure, timeout, unavailability, or an indeterminate result returns `false`.
  *
  * @example Next.js
  * ```typescript
@@ -687,22 +753,15 @@ export function createPaywallHandler(config: PaywallConfig) {
       return false;
     }
 
-    try {
-      const isValid = await verifyPayment(incoming.protocol, incoming.data, resolved);
-      if (!isValid) {
-        advertiseProtocols(res, req, resolved, 'Payment verification failed');
-        return false;
-      }
-
-      settlePayment(incoming.protocol, incoming.data, resolved).catch(err => {
-        console.error(`[veridexPaywall] ${incoming.protocol} settlement error:`, err.message);
-      });
-
-      return true;
-    } catch (err: any) {
-      advertiseProtocols(res, req, resolved, err.message);
+    // Verify AND settle before returning true (fail closed, issue #3)
+    const outcome = await verifyAndSettle(incoming, resolved);
+    if (!outcome.ok) {
+      advertiseProtocols(res, req, resolved, outcome.error);
       return false;
     }
+
+    req.veridexPayment = outcome.payment;
+    return true;
   };
 }
 

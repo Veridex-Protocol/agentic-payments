@@ -738,9 +738,9 @@ This serves:
    - `x-acp-payment-token` → ACP
    - `x-ap2-fulfillment` → AP2
 
-3. **Verification** → Protocol-specific validation + Veridex Relayer facilitator (with local fallback)
+3. **Verification** → Protocol-specific validation + Veridex Relayer facilitator (fails closed if the facilitator is unavailable; local structural checks alone never grant access)
 
-4. **Settlement** → Async, non-blocking via facilitator
+4. **Settlement** → Blocking and fail-closed: the facilitator `/settle` response must meet the settlement-success contract (`success === true`, a valid transaction hash, no error, final status) before `next()` runs or the handler returns `true`. Failure, timeout, unavailability, or an indeterminate result returns 402 (see `src/middleware/settlementContract.ts`, issue #3)
 
 5. **`req.veridexPayment`** attached on success:
    ```typescript

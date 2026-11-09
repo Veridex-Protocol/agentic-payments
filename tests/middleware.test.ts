@@ -16,6 +16,16 @@ const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
 const RECIPIENT = '0x1234567890abcdef1234567890abcdef12345678';
+const TX_HASH = '0x' + 'ab'.repeat(32);
+
+/** A facilitator /settle response that satisfies the settlement-success contract */
+function settledResponse(overrides: Record<string, any> = {}): any {
+  return {
+    ok: true,
+    status: 200,
+    json: async () => ({ success: true, transaction: TX_HASH, network: 'base-mainnet', ...overrides }),
+  };
+}
 
 function createMockReq(headers: Record<string, string> = {}, extra: Record<string, any> = {}): any {
   return {
@@ -209,7 +219,7 @@ describe('x402 incoming detection and verification', () => {
       verifyPayment: customVerify,
     });
 
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) });
+    mockFetch.mockResolvedValueOnce(settledResponse());
 
     const req = createMockReq({ 'payment-signature': 'x402-payload' });
     const res = createMockRes();
@@ -231,7 +241,7 @@ describe('x402 incoming detection and verification', () => {
       verifyPayment: customVerify,
     });
 
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce(settledResponse());
 
     const req = createMockReq({ 'PAYMENT-SIGNATURE': 'x402-upper' });
     const res = createMockRes();
@@ -343,7 +353,7 @@ describe('UCP incoming detection', () => {
       verifyPayment: customVerify,
     });
 
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce(settledResponse());
 
     const req = createMockReq({ 'x-ucp-payment-credential': '{"payload":"...","signature":"0x...","signer":"0x..."}' });
     const res = createMockRes();
@@ -379,7 +389,7 @@ describe('ACP incoming detection', () => {
       verifyPayment: customVerify,
     });
 
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce(settledResponse());
 
     const req = createMockReq({ 'x-acp-payment-token': 'base64url-acp-token' });
     const res = createMockRes();
@@ -403,7 +413,7 @@ describe('AP2 incoming detection', () => {
       verifyPayment: customVerify,
     });
 
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce(settledResponse());
 
     const req = createMockReq({ 'x-ap2-fulfillment': '{"mandate_id":"m-1","signature":"0x..."}' });
     const res = createMockRes();
@@ -450,7 +460,7 @@ describe('Protocol filtering', () => {
       verifyPayment: customVerify,
     });
 
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce(settledResponse());
 
     const req = createMockReq({ 'x-ucp-payment-credential': 'cred-data' });
     const res = createMockRes();
@@ -488,7 +498,7 @@ describe('createPaywallHandler', () => {
       verifyPayment: vi.fn().mockResolvedValue(true),
     });
 
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce(settledResponse());
 
     const req = createMockReq({ 'payment-signature': 'valid-sig' });
     const res = createMockRes();

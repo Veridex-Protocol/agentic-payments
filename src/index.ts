@@ -130,6 +130,7 @@ export {
 
 // Server Middleware (ADR-0024)
 export * from './middleware/veridexPaywall';
+export * from './middleware/settlementContract';
 
 // Next.js App Router adapter
 export * from './middleware/nextAppRouter';

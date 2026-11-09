@@ -51,6 +51,7 @@ describe('SettlementVerifier', () => {
     expect(proof!.txHash).toBe('0xabc123def456');
     expect(proof!.traceHashInCalldata).toBe(false);
     expect(proof!.chain).toBe(2);
+    expect(proof!.confirmedOnChain).toBe(false);
   });
 
   it('should use registered strategy for verification', async () => {
@@ -86,7 +87,7 @@ describe('SettlementVerifier', () => {
 
     expect(proof).not.toBeNull();
     expect(proof!.txHash).toBe('0xabc123def456');
-    expect(proof!.traceHashInCalldata).toBe(false);
+    expect(proof!.traceHashInCalldata).toBe(false);    expect(proof!.confirmedOnChain).toBe(false);
   });
 
   it('should check if strategy exists', () => {
@@ -129,6 +130,7 @@ describe('EVMSettlementStrategy', () => {
     expect(proof).not.toBeNull();
     expect(proof!.txHash).toBe('0xabc123def456');
     expect(proof!.traceHashInCalldata).toBe(false);
+    expect(proof!.confirmedOnChain).toBe(false);
   });
 
   it('should verify via JSON-RPC', async () => {
@@ -147,7 +149,7 @@ describe('EVMSettlementStrategy', () => {
 
     expect(proof).not.toBeNull();
     expect(proof!.blockNumber).toBe(12345);
-    expect(proof!.traceHashInCalldata).toBe(false);
+    expect(proof!.traceHashInCalldata).toBe(false);    expect(proof!.confirmedOnChain).toBe(true);
   });
 
   it('should return null for failed transaction', async () => {

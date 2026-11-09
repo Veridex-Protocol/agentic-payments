@@ -39,6 +39,7 @@ import {
   verifyX402Payment,
   settleX402Payment,
 } from '../x402/adapters/EVMFacilitatorAdapter';
+import { validateSettlementResponse } from './settlementContract';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -194,7 +195,8 @@ export function buildPaywallResponse(
  * Check if a request has a valid payment attached.
  *
  * For Next.js App Router route handlers. Returns a `PaywallResult` indicating
- * whether the payment was verified. If not, includes a pre-built 402 Response.
+ * whether the payment was verified AND settled. Settlement is awaited; failure,
+ * timeout, or an indeterminate result returns `paid: false` with a 402 Response.
  *
  * @param request - The incoming Request (NextRequest or standard Request)
  * @param config - Paywall configuration
@@ -274,8 +276,9 @@ export async function withPaywall(
       };
     }
 
-    // Settle asynchronously (non-blocking)
-    settleX402Payment(
+    // Settle and await the result before granting access (fail closed, issue #3).
+    // settleX402Payment() never throws; it reports failure via success: false.
+    const settlement = await settleX402Payment(
       incoming.data,
       {
         scheme: config.scheme || 'exact',
@@ -289,9 +292,19 @@ export async function withPaywall(
         fallbackUrl: config.fallbackFacilitatorUrl,
         timeoutMs: config.timeoutMs,
       }
-    ).catch(err => {
-      console.error(`[withPaywall] Settlement error (non-blocking):`, err.message || err);
-    });
+    );
+
+    const validated = validateSettlementResponse(
+      { success: settlement?.success, transaction: settlement?.txHash },
+      caip2
+    );
+    if (!validated.ok) {
+      console.error(`[withPaywall] Settlement failed — withholding access: ${settlement?.error || validated.reason}`);
+      return {
+        paid: false,
+        response: buildPaywallResponse(config, 'Payment settlement failed'),
+      };
+    }
 
     const payment: VeridexPaymentInfo = {
       verified: true,
@@ -300,6 +313,7 @@ export async function withPaywall(
       token,
       network: caip2,
       rawPaymentData: incoming.data,
+      settlement: { ...validated.evidence, network: caip2 },
     };
 
     return {
